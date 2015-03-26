@@ -474,9 +474,6 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam)
  	// transfer to shader 
 	shader->copyMatrixToShader(projMat, "projMat");
 
-	glPolygonMode(GL_FRONT, GL_LINE);
-	glPolygonMode(GL_BACK, GL_LINE);
-
 //	glActiveTexture(GL_TEXTURE0 + 2);
 	//glBindTexture(GL_TEXTURE_2D, this->tex);
 	// redner the triangles
@@ -491,9 +488,6 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam)
     glDrawElements(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
     glBindVertexArray(0);
 
-	glPolygonMode(GL_FRONT, GL_FILL);
-	glPolygonMode(GL_BACK, GL_FILL);
-   
 	return 0;
 }
 

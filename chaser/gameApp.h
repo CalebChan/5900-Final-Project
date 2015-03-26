@@ -72,6 +72,8 @@
 #include "Shader.h"
 #include "House.h"
 
+#include "TerrainShader.h"
+
 // DEFINES
 
 #define GAME_TITLE_SISE 128
@@ -104,6 +106,8 @@ private:
 	static Chaser  *chaserYellowKia;
 	
 	static camera *cam;		// one general camera
+
+	static camera *overheadCam;
 	
 
 	static bool mode;
@@ -117,10 +121,13 @@ private:
 	static std::vector<gameObject *> gameStaticEntities;	// these entities do not change with time
 	static std::vector<gameObject *> gameDynamicEntities; // these entities' attributes change with time
 
+	void createShaders();
 	
 protected:
 
-	
+	static Shader *defaultShader;
+	static TerrainShader *terrainShader;
+
 
 
 	// static functions  - Call Back functions
@@ -129,5 +136,15 @@ protected:
 	static void reshapeFun(int w, int h);
 	static void timerFun(int timerEvent);
 	static void renderFrame();		// render the frame
+
+	static void renderTerrainFrame();
+	static void renderReglarFrame();
+
+
+private:
+	static GLuint terrainId;
+	static GLuint terrainTex;
+
+	void createTerrainBuffer();
 
 };

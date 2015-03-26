@@ -32,6 +32,9 @@
       <Filter>source_files</Filter>
     </ClCompile>
     <ClCompile Include="House.cpp" />
+    <ClCompile Include="TerrainShader.cpp">
+      <Filter>source_files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SOIL.h">
@@ -66,6 +69,9 @@
     </ClInclude>
     <ClInclude Include="House.h" />
     <ClInclude Include="Constant.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
+    <ClInclude Include="TerrainShader.h">
       <Filter>header_files</Filter>
     </ClInclude>
   </ItemGroup>

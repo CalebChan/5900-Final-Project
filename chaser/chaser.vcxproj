@@ -22,6 +22,7 @@
     <ClCompile Include="Prey.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SkyBox.cpp" />
+    <ClCompile Include="TerrainShader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -30,6 +31,7 @@
     <ClInclude Include="Constant.h" />
     <ClInclude Include="gameApp.h" />
     <ClInclude Include="gameObject.h" />
+    <ClInclude Include="TerrainShader.h" />
     <ClInclude Include="House.h" />
     <ClInclude Include="meshSurface.h" />
     <ClInclude Include="Prey.h" />

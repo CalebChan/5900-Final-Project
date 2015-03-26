@@ -168,7 +168,7 @@ GLint Shader::ceateShaderProgram(GLint vertShaderid, GLint fragShaderid, GLuint 
 		error = (char *) malloc(bufSize*sizeof(char)+1);
 		if (error != NULL) {
 			glGetProgramInfoLog(shaderProgramid, bufSize, &length, error);
-			fprintf(stderr,"%s \n", error);
+			printf("%s \n", error);
 		} 
 		if (error != NULL) free(error);
 	} else rc = 0;
@@ -176,8 +176,10 @@ GLint Shader::ceateShaderProgram(GLint vertShaderid, GLint fragShaderid, GLuint 
 	shaderStatus();  // may want to remove it.
 
 	if (shaderProgId != NULL) *shaderProgId = shaderProgramid;
-	glDeleteShader(vertShaderid);
-	glDeleteShader(fragShaderid);
+	glDetachShader(shaderProgramid, vertShaderid);
+	glDetachShader(shaderProgramid, fragShaderid);
+	//glDeleteShader(vertShaderid);
+	//glDeleteShader(fragShaderid);
 err:
 	return (rc);
 }
@@ -214,7 +216,6 @@ int Shader::createShaderProgram(char * vsFileName, char * fsFileName, GLuint *sh
 	if (rc == 0) {
 		rc = ceateShaderProgram(vertShaderid, fragShaderid,shaderProgramid);
 	}
-
 	this->shaderProgramid = *shaderProgramid;
 	return(rc);
 }

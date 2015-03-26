@@ -82,6 +82,7 @@ public:
 	int processKeys(unsigned char *key, int numKeys); // responds to  seq. of key strokes
 
 	int createGraphicsBuffers(Shader *shader);
+	int configureShader(Shader *shader);
 	int setScale(float scaleX, float scaleY, float scaleZ);
 	int loadModelOBJ(char *fileName, struct carVertex **vtxBuf,  GLuint *numVtx, GLuint **indBuf,GLuint *numInd);
 

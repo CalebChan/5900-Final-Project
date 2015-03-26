@@ -92,6 +92,31 @@ Car::~Car(void)
 	
 }
 
+int Car::configureShader(Shader *shader){
+	GLint shaderLoc;
+	//copy the vertex position
+	shaderLoc = glGetAttribLocation(shader->getProgId(), "vPos");
+	glEnableVertexAttribArray(shaderLoc);
+	glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*)offsetof(struct carVertex, pos));
+
+	//copy the vertex colour
+	shaderLoc = glGetAttribLocation(shader->getProgId(), "vColour");
+	glEnableVertexAttribArray(shaderLoc);
+	glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*)offsetof(struct carVertex, col));
+
+	//copy the vertex normal
+	shaderLoc = glGetAttribLocation(shader->getProgId(), "vNormal");
+	glEnableVertexAttribArray(shaderLoc);
+	glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*)offsetof(struct carVertex, normal));
+
+	//copy the texture coordinates
+	shaderLoc = glGetAttribLocation(shader->getProgId(), "vTex");
+	glEnableVertexAttribArray(shaderLoc);
+	glVertexAttribPointer(shaderLoc, 2, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*)offsetof(struct carVertex, texCoord1));
+
+	return 0;
+}
+
 /******************************************************************/
 /*
 Purpose: creates the required index and vertex buffers on the graphics card
@@ -110,7 +135,7 @@ int Car::createGraphicsBuffers(Shader *shader)
 	int rc = 0;
 	struct carVertex *v = NULL;
 	long *ind = NULL;
-	GLint shaderLoc;
+	
 
 	    //create vertex array object
     glGenVertexArrays(1, &mVao);
@@ -121,30 +146,8 @@ int Car::createGraphicsBuffers(Shader *shader)
     glBindBuffer(GL_ARRAY_BUFFER, mVtxVbo);		
     glBufferData(GL_ARRAY_BUFFER, mNumVtx * sizeof(struct carVertex), mVtxBuf, GL_STATIC_DRAW);
 
-    //copy the vertex position
-    shaderLoc = glGetAttribLocation(shader->getProgId(), "vPos");
-    glEnableVertexAttribArray(shaderLoc);
-    glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*) offsetof(struct carVertex, pos));
- 
-	//copy the vertex colour
-	shaderLoc = glGetAttribLocation(shader->getProgId(), "vColour");
-    glEnableVertexAttribArray(shaderLoc);
-    glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*) offsetof(struct carVertex, col));
+	configureShader(shader);
 
-    //copy the vertex normal
-	shaderLoc = glGetAttribLocation(shader->getProgId(), "vNormal");
-    glEnableVertexAttribArray(shaderLoc);
-    glVertexAttribPointer(shaderLoc, 4, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*) offsetof(struct carVertex, normal));
-
-    //copy the texture coordinates
-	shaderLoc = glGetAttribLocation(shader->getProgId(), "vTex");
-    glEnableVertexAttribArray(shaderLoc);
-    glVertexAttribPointer(shaderLoc, 2, GL_FLOAT, GL_FALSE, sizeof(struct carVertex), (void*) offsetof(struct carVertex, texCoord1));
-
-    //create index buffer
-//    glGenBuffers( 1, &mIndVbo);
-//    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mIndVbo );
-//    glBufferData( GL_ELEMENT_ARRAY_BUFFER, mNumInd * sizeof(GLuint), mIndBuf, GL_STATIC_DRAW );
 
     //end creation
     glBindVertexArray( 0 );
@@ -293,9 +296,6 @@ int Car::render(Matrix4f *worldMat, camera *cam)
 	// transfer the texture handle to shader
 //	glActiveTexture(GL_TEXTURE0 + 1);
 //	glBindTexture(GL_TEXTURE_2D, this->tex);
-	
-	glPolygonMode(GL_FRONT, GL_LINE);
-	glPolygonMode(GL_BACK, GL_LINE);
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D,tex);
@@ -307,9 +307,6 @@ int Car::render(Matrix4f *worldMat, camera *cam)
 	// redner the triangles
 	glBindVertexArray(mVao);
 	glDrawArrays(GL_TRIANGLES, 0,mNumInd);
-	//glDrawArrays(GL_QUADS, 0,mNumInd);
-
-	//glDrawArrays(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
 
 

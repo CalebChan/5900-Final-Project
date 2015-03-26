@@ -61,6 +61,9 @@
 #define GAME_COLLISION_EVENT 2
 
 
+#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 400
+
 /*******************************************************************************/
 // class static variables
 camera *gameApp::cam = NULL;
@@ -76,6 +79,13 @@ std::vector<House *> gameApp::staticHouses;
 bool gameApp::mode = false;
 bool gameApp::runningGame = true;
 
+
+Shader *gameApp::defaultShader = NULL;
+TerrainShader *gameApp::terrainShader = NULL;
+camera *gameApp::overheadCam = NULL;
+
+GLuint gameApp::terrainId;
+GLuint gameApp::terrainTex;
 
 /******************************************************************/
 /*
@@ -151,7 +161,7 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutInitWindowPosition(winPosx, winPosy);
 
 	// instuct openGL what window size ot use
-	glutInitWindowSize(winWidth, winHeight);		// no magic numbers
+	glutInitWindowSize(SCREEN_WIDTH * 2, SCREEN_HEIGHT);		// no magic numbers
 
 	// careate the fist window and obtain a handle to it 
 	wId = glutCreateWindow("My First Window");
@@ -169,7 +179,6 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutKeyboardFunc(keyboardFun);
 	glutSpecialFunc(specialKeyboardFun);
 	glutTimerFunc(10, timerFun, 1);
-
 
 
 	// initialize GLEW
@@ -204,6 +213,8 @@ Return:
 
 int gameApp::gameLoop(void)
 {
+
+	createTerrainBuffer();
 	// enter glut main loop
 	glutMainLoop();
 
@@ -293,47 +304,132 @@ Return:
 
 void gameApp::renderFrame(void)
 {
-	static int count = 0;
 	static int dir = 1;
 	unsigned int i;
 	static time_t oldTime = 0;
 	time_t currentTime, deltaTime;
-
-
-
-	count++;
 	glClearColor(0, 0, 0, 0.0);
-	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  //Clear the colour and depth buffers
 
-	//glEnable(GL_SCISSOR_TEST);
-	//scissorViewport(0, 0, 800, 900);
-	for (i = 0; i < gameDynamicEntities.size(); i++) {
-		gameObject *g = gameDynamicEntities.at(i);
-		gameDynamicEntities.at(i)->render(NULL, gameApp::cam);
-	}
-	for (i = 0; i < gameStaticEntities.size(); i++) {
-		gameStaticEntities.at(i)->render(NULL, gameApp::cam);
-	}
+	glEnable(GL_SCISSOR_TEST);
+	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderReglarFrame();
 
-	//glClear(GL_DEPTH_BUFFER_BIT);
-	//scissorViewport(800, 0, 800, 900);
-	//renderSceneFun();
+	scissorViewport(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderTerrainFrame();
 
 	glutSwapBuffers();
+
+
 	currentTime = clock();
 	deltaTime = currentTime - oldTime;
 	if (deltaTime < MS_PER_FRAME) {
 		Sleep(MS_PER_FRAME - deltaTime);  // the Sleep function has to be replaced with a draw event 
 	}
 	oldTime = clock();
+}
 
+void gameApp::renderReglarFrame(){
+	unsigned int i;
+	for (i = 0; i < gameDynamicEntities.size(); i++) {
+		gameDynamicEntities.at(i)->setShader(defaultShader);
+		gameDynamicEntities.at(i)->render(NULL, gameApp::cam);
+	}
+	for (i = 0; i < gameStaticEntities.size(); i++) {
+		gameStaticEntities.at(i)->setShader(defaultShader);
+		gameStaticEntities.at(i)->render(NULL, gameApp::cam);
+	}
+}
 
+void gameApp::renderTerrainFrame(){
+#if 1
+	unsigned int i;
+	for (i = 0; i < gameDynamicEntities.size(); i++) {
+		gameDynamicEntities.at(i)->setShader(terrainShader);
 
+		((Car*)gameDynamicEntities.at(i))->configureShader(((Car*)gameDynamicEntities.at(i))->getShader());
+
+		gameDynamicEntities.at(i)->render(NULL, gameApp::overheadCam);
+	}
+	for (i = 0; i < gameStaticEntities.size(); i++) {
+		gameStaticEntities.at(i)->setShader(terrainShader);
+		gameStaticEntities.at(i)->render(NULL, gameApp::overheadCam);
+	}
+#else
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, terrainId);
+	
+	renderReglarFrame();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, terrainTex);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	GLuint tmp = drawSurface->tex;
+	drawSurface->tex = terrainTex;
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderReglarFrame();
+	drawSurface->tex = tmp;
+#endif
+	
 }
 
 void gameApp::scissorViewport(int x, int y, int w, int h){
 	glScissor(x, y, w, h);
 	glViewport(x, y, w, h);
+}
+
+void gameApp::createShaders(){
+	int rc;
+	GLuint shaderId;
+
+	defaultShader = new Shader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
+	if (defaultShader == NULL) {
+		printf("error in creating a shader obeject \n");
+		assert(0);
+	}
+	rc = defaultShader->createShaderProgram("Shader\\general.vert", "Shader\\general.frag", &shaderId);
+	if (rc != 0) {
+		printf("error in generating shader vs=%s, fs=%s \n", "general.vert", "general.frag");
+		delete defaultShader;
+		defaultShader = NULL;
+		assert(0);
+	}
+
+	terrainShader = new TerrainShader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
+	if (terrainShader == NULL) {
+		printf("error in creating a shader obeject \n");
+		assert(0);
+	}
+	rc = terrainShader->createShaderProgram("Shader\\terrainShader.vert", "Shader\\terrainShader.frag", &shaderId);
+	if (rc != 0) {
+		printf("error in generating shader vs=%s, fs=%s \n", "general.vert", "general.frag");
+		delete terrainShader;
+		terrainShader = NULL;
+		assert(0);
+	}
+}
+
+void gameApp::createTerrainBuffer(){
+	glGenTextures(1, &terrainTex);
+	glBindTexture(GL_TEXTURE_2D, terrainTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);	
+
+	glGenRenderbuffers(1, &terrainId);
+	glBindRenderbuffer(GL_FRAMEBUFFER, terrainId);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, terrainId);
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE){
+		printf("Something went wrong with creation");
+	}
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 
@@ -355,8 +451,7 @@ int gameApp::initGame(void)
 		// create game objects
 	Car *truck;
 	House *house1, *house2;		// may want to set them as static for collision
-	Shader *tmpShader = NULL;
-	GLuint shaderId;
+	//Shader *tmpShader = NULL;
 		
 	house1 = new House();
 	house2 = new House();
@@ -366,42 +461,16 @@ int gameApp::initGame(void)
 	chaserYellowKia = new Chaser();
 	drawSurface = new meshSurface();
 
-	/*
-	chaserYellowKia->createShaderProg("general.vert", "general.frag");
-	truck->createShaderProg("general.vert", "general.frag"); // load shader
-	chaserYellowKia->createShaderProg("general.vert", "general.frag");
-	preyRedKia->createShaderProg("general.vert", "general.frag");
-	house1->createShaderProg("general.vert", "general.frag");
-	house2->createShaderProg("general.vert", "general.frag");
-	drawSurface->createShaderProg("general.vert", "general.frag");
-	*/
-	
-
-	tmpShader = new Shader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
-	if (tmpShader == NULL) {
-		printf("error in creating a shader obeject \n");
-		assert(0);
-	}
-	rc = tmpShader->createShaderProgram("Shader\\general.vert", "Shader\\general.frag", &shaderId);
-	if (rc != 0) {
-		printf("error in generating shader vs=%s, fs=%s \n", "general.vert", "general.frag");
-		delete tmpShader;
-		tmpShader = NULL;
-		assert(0);
-	}
+	createShaders();
 
 
-	chaserYellowKia->setShader(tmpShader); 
-	chaserYellowKia->setShader(tmpShader);
-	truck->setShader(tmpShader); // load shader
-	chaserYellowKia->setShader(tmpShader);
-	preyRedKia->setShader(tmpShader); 
-	house1->setShader(tmpShader); 
-	house2->setShader(tmpShader); 
-	drawSurface->setShader(tmpShader); 
+	chaserYellowKia->setShader(defaultShader);
+	truck->setShader(defaultShader); // load shader
+	preyRedKia->setShader(defaultShader);
+	house1->setShader(defaultShader);
+	drawSurface->setShader(defaultShader);
 
 	targetHouse->createShaderProg("Shader\\generalRed.vert", "Shader\\generalRed.frag");
-
 	// set the target house
 	targetHouse->loadModelOBJ("targethouse\\target.obj", &targetHouse->mVtxBuf, &targetHouse->mNumVtx, &targetHouse->mIndBuf, &targetHouse->mNumInd);
 	// load the textures
@@ -409,9 +478,6 @@ int gameApp::initGame(void)
 	targetHouse->setScale((float) 0.015, (float)  0.015, (float) 0.02);
 	targetHouse->mYaw = 180;
 	targetHouse->setPositionOrientation(Vector3f(-3, 2.13, (float) -10.2), Vector3f(1, 0, 1), Vector3f(0, 1, 0));
-
-
-
 
 	// set truck object 
 	// load the gemoetry
@@ -449,34 +515,8 @@ int gameApp::initGame(void)
 	house1->loadTexture("house_obj\\house_diffuse_256.tga");
 	// set attributes (scale, position, and initial orientation towards the (0,0,1)
 	house1->setScale((float) 0.006, (float)  0.006, (float) 0.006);
-	house1->setPositionOrientation(Vector3f(6,0, (float) 1), Vector3f(1,0,0),Vector3f(0,1,0));
-
-	house2->loadModelOBJ("house_obj\\house_obj.obj",&house2->mVtxBuf, &house2->mNumVtx,&house2->mIndBuf, &house2->mNumInd);
-	// load the textures
-	house2->loadTexture("house_obj\\house_diffuse_256.tga");
-	// set attributes (scale, position, and initial orientation towards the (0,0,1)
-	house2->setScale((float) 0.006, (float)  0.006, (float) 0.006);
-	house2->setPositionOrientation(Vector3f(-15,0,0), Vector3f(0,0,1),Vector3f(0,1,0));
-
-
-	House *h1 = createHouse(Vector3f(-10, 0, 20), Vector3f(0, 0, 1), tmpShader);
-	//gameStaticEntities.push_back(h1);
-	//staticHouses.push_back(h1);
-
-	h1 = createHouse(Vector3f(-20, 0, 5), Vector3f(0, 0, 1), tmpShader);
-	//gameStaticEntities.push_back(h1);
-	//staticHouses.push_back(h1);
-
-	h1 = createHouse(Vector3f(-40, 0, 10), Vector3f(0, 0, 1), tmpShader);
-	//gameStaticEntities.push_back(h1);
-	//staticHouses.push_back(h1);
-
-	h1 = createHouse(Vector3f(60, 0, 10), Vector3f(0, 0, 1), tmpShader);
-	//gameStaticEntities.push_back(h1);
-	//staticHouses.push_back(h1);
-
+	house1->setPositionOrientation(Vector3f(6, 0, (float)1), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
 	staticHouses.push_back(house1);
-	//staticHouses.push_back(house2);
 
 
 	// set the surface
@@ -485,8 +525,6 @@ int gameApp::initGame(void)
 
 	// add the objects to the list of game objects
 	gameDynamicEntities.push_back(chaserYellowKia);
-	//gameDynamicEntities.push_back(preyRedKia);
-	//gameDynamicEntities.push_back(truck);
 
 	// add the objecst to the list of game objects
 	gameStaticEntities.push_back(drawSurface);
@@ -499,6 +537,10 @@ int gameApp::initGame(void)
 	cam = new camera();
 	cam->setCamera(Vector3f(0, 20, 40), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
 	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
+
+	overheadCam = new camera();
+	overheadCam->setCamera(Vector3f(0, 50, 0), Vector3f(0, 0, 0), Vector3f(0, 0, -1));
+	overheadCam->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
 
 	return 0;
 }
