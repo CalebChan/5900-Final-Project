@@ -35,6 +35,9 @@
     <ClCompile Include="TerrainShader.cpp">
       <Filter>source_files</Filter>
     </ClCompile>
+    <ClCompile Include="DepthMeshSurface.cpp">
+      <Filter>source_files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SOIL.h">
@@ -72,6 +75,9 @@
       <Filter>header_files</Filter>
     </ClInclude>
     <ClInclude Include="TerrainShader.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthMeshSurface.h">
       <Filter>header_files</Filter>
     </ClInclude>
   </ItemGroup>

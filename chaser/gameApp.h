@@ -73,6 +73,7 @@
 #include "House.h"
 
 #include "TerrainShader.h"
+#include "DepthMeshSurface.h"
 
 // DEFINES
 
@@ -82,7 +83,7 @@
 
 class gameApp
 {
-//FUNCTIONS
+// Default functions
 public:
 	//gameApp(void);
 	~gameApp(void);
@@ -91,45 +92,17 @@ public:
 	virtual int updateGameState(long time);  // update the game state
 	virtual int gameLoop(void);					// start the game loop
 	virtual int initGame(void);				// initialize the game
-
-	static std::vector<House *> staticHouses;
-
 	static gameApp *myApp;
 	static Prey    *preyRedKia;
 	static House *targetHouse;
-
-	static void updateFirstPersonCamera(void);
 private:
-
 	int wId;		// the window handle 
 	static meshSurface *drawSurface;
 	static Chaser  *chaserYellowKia;
-	
 	static camera *cam;		// one general camera
-
-	static camera *overheadCam;
-	
-
-	static bool mode;
-
-	static bool runningGame;
-
-	static void scissorViewport(int x, int y, int w, int h);
-
-	House* createHouse(Vector3f pos, Vector3f orientation, Shader *shader);
-
 	static std::vector<gameObject *> gameStaticEntities;	// these entities do not change with time
 	static std::vector<gameObject *> gameDynamicEntities; // these entities' attributes change with time
-
-	void createShaders();
-	
 protected:
-
-	static Shader *defaultShader;
-	static TerrainShader *terrainShader;
-
-
-
 	// static functions  - Call Back functions
 	static void keyboardFun(unsigned char key, int x, int y);
 	static void specialKeyboardFun(int key, int x, int y);
@@ -137,14 +110,34 @@ protected:
 	static void timerFun(int timerEvent);
 	static void renderFrame();		// render the frame
 
-	static void renderTerrainFrame();
-	static void renderReglarFrame();
+
+
+//FUNCTIONS
+public:
+	static std::vector<House *> staticHouses;
+	static std::vector<DepthMeshSurface *> depthEntities;
+public:
+	static void updateFirstPersonCamera(void);
 
 
 private:
-	static GLuint terrainId;
-	static GLuint terrainTex;
-
+	static camera *overheadCam;
+	static bool mode;
+	static bool runningGame;
+	static DepthMeshSurface *depthSurface;
+	static GLuint terrainFrameBuf;
+	static GLuint terrainTexId;
+private:
+	static void scissorViewport(int x, int y, int w, int h);
+	House* createHouse(Vector3f pos, Vector3f orientation, Shader *shader);
+	void createShaders();
 	void createTerrainBuffer();
 
+
+protected:
+	static Shader *defaultShader;
+	static TerrainShader *terrainShader;
+protected:
+	static void renderTerrainFrame();
+	static void renderReglarFrame();
 };

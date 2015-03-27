@@ -427,7 +427,7 @@ int Car::loadModelOBJ(char *fileName, struct carVertex **vtxBuf, GLuint *numVtx,
 				&vertexIndex[2], &uvIndex[2], &normalIndex[2], 
 				&vertexIndex[3], &uvIndex[3], &normalIndex[3]);
 			if (matches != 9 && matches != 12) {
-				printf("face is not a triangle or a quad !!!\n");
+				//printf("face is not a triangle or a quad !!!\n");
 				assert(matches != 9 && matches != 12);
 			}
 			for (i = 0; i < 3; i++) {
