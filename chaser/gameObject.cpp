@@ -83,6 +83,12 @@ int  gameObject::render(int time, Matrix4f *worldTransformation, camera *cam)
 	return 0;
 }
 
+int  gameObject::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type)
+{
+
+	return render(worldMat, cam);
+}
+
 
 
 /**************************************************************************/

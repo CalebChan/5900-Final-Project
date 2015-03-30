@@ -260,6 +260,19 @@ int Shader::shaderStatus(void)
 	glGetProgramiv(shaderProgramid, GL_ACTIVE_UNIFORM_MAX_LENGTH, &rc);
 	fprintf(stderr,"shader maximum name length of an active uniform= %d \n", rc);
 
+	int total = -1;
+	glGetProgramiv(this->getProgId(), GL_ACTIVE_UNIFORMS, &total);
+	for (int i = 0; i<total; ++i)  {
+		int name_len = -1, num = -1;
+		GLenum type = GL_ZERO;
+		char name[100];
+		glGetActiveUniform(this->getProgId(), GLuint(i), sizeof(name) - 1, &name_len, &num, &type, name);
+		name[name_len] = 0;
+		GLuint location = glGetUniformLocation(this->getProgId(), name);
+		printf("\t Name %s : Local %d\n", name, location);
+	}
+
+
 	return 0;
 }
 
@@ -277,7 +290,22 @@ int Shader::copyMatrixToShader(Matrix4f mat, char *matName)
 
 {
 	int loc = glGetUniformLocation(this->getProgId(), matName);
-	assert(loc != -1);
+	if (loc == -1){
+		printf("ERROR HAS OCCURED : \n");
+		int total = -1;
+		glGetProgramiv(this->getProgId(), GL_ACTIVE_UNIFORMS, &total);
+		for (int i = 0; i<total; ++i)  {
+			int name_len = -1, num = -1;
+			GLenum type = GL_ZERO;
+			char name[100];
+			glGetActiveUniform(this->getProgId(), GLuint(i), sizeof(name) - 1, &name_len, &num, &type, name);
+			name[name_len] = 0;
+			GLuint location = glGetUniformLocation(this->getProgId(), name);
+			printf("\t Name %s : Local %d\n", name, location);
+		}
+
+		assert(loc != -1);
+	}
 	glUniformMatrix4fv(loc, 1, true, (float *) mat.vm);
 	return 0;
 }

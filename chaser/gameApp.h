@@ -78,7 +78,8 @@
 // DEFINES
 
 #define GAME_TITLE_SISE 128
-
+#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 400
 
 
 class gameApp
@@ -116,28 +117,37 @@ protected:
 public:
 	static std::vector<House *> staticHouses;
 	static std::vector<DepthMeshSurface *> depthEntities;
+	static GLuint terrainFrameBuf;
+	static GLuint terrainTexId;
 public:
 	static void updateFirstPersonCamera(void);
 
 
 private:
 	static camera *overheadCam;
+	static camera *lightSource;
 	static bool mode;
 	static bool runningGame;
 	static DepthMeshSurface *depthSurface;
-	static GLuint terrainFrameBuf;
-	static GLuint terrainTexId;
 private:
 	static void scissorViewport(int x, int y, int w, int h);
 	House* createHouse(Vector3f pos, Vector3f orientation, Shader *shader);
 	void createShaders();
 	void createTerrainBuffer();
 
+	static unsigned char texture[3 * 400 * 600];
 
 protected:
 	static Shader *defaultShader;
 	static TerrainShader *terrainShader;
+	static Shader *redHouseShader;
+
+	static Shader *defaultShadowShader;
+	static Shader *redHouseShadowShader;
 protected:
 	static void renderTerrainFrame();
-	static void renderReglarFrame();
+	static void renderRegularFrame();
+	static void renderLightFrame(bool depthPass);
+
+	Shader *createShader(char* vertex, char* frag);
 };

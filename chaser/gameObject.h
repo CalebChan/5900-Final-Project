@@ -15,6 +15,12 @@
 
 /**************************************************************************/
 
+enum RENDER_MAT_TYPE{
+	NORMAL,
+	DEPTH,
+	LIGHT,
+};
+
 class gameObject
 {
 	// functions
@@ -25,6 +31,7 @@ public:
 	virtual int initGeom(char *directory, char * meshFileName);
 	virtual int render(int time);
 	virtual int render(int time, Matrix4f *worldTransformation, camera *cam);
+	virtual int render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type);
 	virtual int render(Matrix4f *worldTransformation, camera *cam) = 0;
 	virtual int updateState(int time); 	// update the object state
 	virtual int processKeys(unsigned char key); // responds to a key stroke

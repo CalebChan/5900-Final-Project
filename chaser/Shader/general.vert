@@ -10,7 +10,6 @@ in vec2 vTex;		// vertex texture coordinates
 
 varying vec2 tex1;
 
-
 out Data{
 	vec4 pos;
 	vec4 normal;

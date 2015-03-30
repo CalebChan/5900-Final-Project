@@ -66,10 +66,6 @@ struct carVertex {
 };
 
 
-
-
-
-
 class Car : public gameObject
 {
 public:
@@ -77,6 +73,8 @@ public:
 	~Car(void);
 	int render(int time, Matrix4f *worldTransformation, camera *cam);
 	int render(Matrix4f *worldTransformation, camera *cam);
+	int render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type);
+
 	int updateState(int time); 	// update the object state
 	int processKeys(unsigned char key); // responds to a key stroke
 	int processKeys(unsigned char *key, int numKeys); // responds to  seq. of key strokes

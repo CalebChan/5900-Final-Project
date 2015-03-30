@@ -1,4 +1,5 @@
 #include "DepthMeshSurface.h"
+#include "gameApp.h"
 
 
 DepthMeshSurface::DepthMeshSurface(){
@@ -37,23 +38,23 @@ int DepthMeshSurface::render(Matrix4f *worldMat, camera *cam)
 	// set the camera position
 	projMat = cam->getProjectionMatrix(NULL);
 	// transfer to shader 
-	//shader->copyMatrixToShader(projMat, "projMat");
+	shader->copyMatrixToShader(projMat, "projMat");
 
 	if (this->otherTex == -1){
 		this->otherTex = tex;
 	}
-
+	
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, this->otherTex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
 	glUniform1i(texLoc, 3);
 	GLint ttt = 0;
 	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
-	
 
 	glBindVertexArray(mVao);
 	glDrawElements(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return 0;
 }

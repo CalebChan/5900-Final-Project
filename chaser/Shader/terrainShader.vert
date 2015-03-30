@@ -9,8 +9,12 @@ in vec4 vColour;	// vertex colour
 in vec2 vTex;		// vertex texture coordinates
 
 varying vec2 texLocal;
+varying vec3 normals;
+varying vec4 position;
 
 void main(){
-	gl_Position = modelWorldViewMat * vPos;
+	gl_Position = projMat * modelWorldViewMat * vPos;
 	texLocal = vTex;
+	normals = vNormal.xyz;
+	position = vPos;
 }

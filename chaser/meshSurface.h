@@ -77,6 +77,7 @@ public:
 	  //virtual int render(int time);
 	int meshSurface::render(int time, Matrix4f *worldTransformation, camera *cam);
 	int meshSurface::render(Matrix4f *worldTransformation, camera *cam);
+	int render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type);
 	int createSurface(int numRows, int numCols, float dx, float dz);
 	int createGraphicsBuffers(Shader *shader);
 //	int createGraphicsBuffers(void);

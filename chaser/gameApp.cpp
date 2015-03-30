@@ -60,10 +60,6 @@
 #define GAME_UPDATE_FRAME_STATE_EVENT 1
 #define GAME_COLLISION_EVENT 2
 
-
-#define SCREEN_HEIGHT 600
-#define SCREEN_WIDTH 400
-
 /*******************************************************************************/
 // class static variables
 camera *gameApp::cam = NULL;
@@ -82,7 +78,11 @@ bool gameApp::runningGame = true;
 
 Shader *gameApp::defaultShader = NULL;
 TerrainShader *gameApp::terrainShader = NULL;
+Shader *gameApp::redHouseShader = NULL;
+Shader *gameApp::defaultShadowShader = NULL;
+Shader *gameApp::redHouseShadowShader = NULL;
 camera *gameApp::overheadCam = NULL;
+camera *gameApp::lightSource = NULL;
 
 GLuint gameApp::terrainFrameBuf;
 GLuint gameApp::terrainTexId;
@@ -90,6 +90,8 @@ GLuint gameApp::terrainTexId;
 DepthMeshSurface *gameApp::depthSurface;
 
 std::vector<DepthMeshSurface *> gameApp::depthEntities;
+
+unsigned char gameApp::texture[3 * SCREEN_HEIGHT * SCREEN_WIDTH];
 
 /******************************************************************/
 /*
@@ -105,7 +107,7 @@ Return:
 
 gameApp::gameApp(void) 
 {
-
+	ZeroMemory(texture, sizeof(texture));
 	myApp = this;
 }
 
@@ -165,7 +167,7 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutInitWindowPosition(winPosx, winPosy);
 
 	// instuct openGL what window size ot use
-	glutInitWindowSize(SCREEN_WIDTH * 2, SCREEN_HEIGHT);		// no magic numbers
+	glutInitWindowSize(SCREEN_WIDTH * 3, SCREEN_HEIGHT);		// no magic numbers
 
 	// careate the fist window and obtain a handle to it 
 	wId = glutCreateWindow("My First Window");
@@ -316,9 +318,13 @@ void gameApp::renderFrame(void)
 	glEnable(GL_SCISSOR_TEST);
 	renderTerrainFrame();
 
+	scissorViewport(SCREEN_WIDTH * 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderRegularFrame();
+
 	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderReglarFrame();
+	renderLightFrame(false);
 
 	
 
@@ -333,62 +339,68 @@ void gameApp::renderFrame(void)
 	oldTime = clock();
 }
 
-void gameApp::renderReglarFrame(){
+void gameApp::renderRegularFrame(){
+
+	Matrix4f model = Matrix4f::identity();
+	Matrix4f view = gameApp::cam->getViewMatrix(NULL);
+	Matrix4f proj = gameApp::cam->getProjectionMatrix(NULL);
+
+	Matrix4f depthMat = proj * view * model;
+
+	Matrix4f bias(	Vector4f(0.5, 0, 0, 0),
+					Vector4f(0, 0.5, 0, 0),
+					Vector4f(0, 0, 0.5, 0),
+					Vector4f(0.5, 0.5, 0.5, 1));
+	Matrix4f biasDepth = bias * depthMat;
+
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
-		//gameDynamicEntities.at(i)->setShader(defaultShader);
-		gameDynamicEntities.at(i)->render(NULL, gameApp::cam);
+		gameDynamicEntities.at(i)->setShader(defaultShadowShader);
+		gameDynamicEntities.at(i)->render(NULL, gameApp::lightSource, &biasDepth, LIGHT);
+		gameDynamicEntities.at(i)->setShader(defaultShader);
 	}
 	for (i = 0; i < gameStaticEntities.size(); i++) {
-		//gameStaticEntities.at(i)->setShader(defaultShader);
-		gameStaticEntities.at(i)->render(NULL, gameApp::cam);
+		gameStaticEntities.at(i)->setShader(defaultShadowShader);
+		gameStaticEntities.at(i)->render(NULL, gameApp::lightSource, &biasDepth, LIGHT);
+		gameStaticEntities.at(i)->setShader(defaultShader);
+	}
+}
+
+void gameApp::renderLightFrame(bool depthPass){
+	unsigned int i;
+	for (i = 0; i < gameDynamicEntities.size(); i++) {
+		gameDynamicEntities.at(i)->render(NULL, gameApp::cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
+	}
+	for (i = 0; i < gameStaticEntities.size(); i++) {
+		gameStaticEntities.at(i)->render(NULL, gameApp::cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
 	}
 }
 
 void gameApp::renderTerrainFrame(){
-#if 1
 	// First pass
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
-	renderReglarFrame();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, terrainFrameBuf);
+	//glBindTexture(GL_TEXTURE_2D, terrainTexId);
+	glCullFace(GL_FRONT);
 	
-	glBindTexture(GL_TEXTURE_2D, terrainTexId);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	//glGenerateMipmap(GL_TEXTURE_2D);
+	renderLightFrame(true);
+	glDrawBuffer(GL_BACK);
+	glReadBuffer(GL_BACK);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+	//glBindTexture(GL_TEXTURE_2D, 0);
 	depthSurface->setMeshTexture(terrainTexId);
 
-	
-	glBindTexture(GL_TEXTURE_2D, 0);
 	// Second pass
 	scissorViewport(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glCullFace(GL_BACK);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	Matrix4f world = Matrix4f(
-		Vector4f(0.5, 0, 0, 0),
-		Vector4f(0, 0.5, 0, 0),
-		Vector4f(0, 0, 0.5, 0),
-		Vector4f(0.5, 0.5, 0.5, 1.0)
-		);
-
-	depthSurface->render(&world, gameApp::cam);
+	depthSurface->render(NULL, gameApp::lightSource);
 
 	depthSurface->revertTexture();
-#else
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glBindFramebuffer(GL_FRAMEBUFFER, terrainId);
-	
-	renderReglarFrame();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, terrainTex);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	GLuint tmp = drawSurface->tex;
-	drawSurface->tex = terrainTex;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderReglarFrame();
-	drawSurface->tex = tmp;
-#endif
 	
 }
 
@@ -401,19 +413,19 @@ void gameApp::createShaders(){
 	int rc;
 	GLuint shaderId;
 
-	defaultShader = new Shader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
-	if (defaultShader == NULL) {
-		printf("error in creating a shader obeject \n");
-		assert(0);
-	}
-	rc = defaultShader->createShaderProgram("Shader\\general.vert", "Shader\\general.frag", &shaderId);
-	if (rc != 0) {
-		printf("error in generating shader vs=%s, fs=%s \n", "general.vert", "general.frag");
-		delete defaultShader;
-		defaultShader = NULL;
-		assert(0);
-	}
+	printf("Build Default Shader\n");
+	defaultShader = createShader("Shader\\general.vert", "Shader\\general.frag");
 
+	printf("Build Red House Shader\n");
+	redHouseShader = createShader("Shader\\generalRed.vert", "Shader\\generalRed.frag");
+
+	printf("Build Default Shadow Shader\n");
+	defaultShadowShader = createShader("Shader\\generalShadow.vert", "Shader\\generalShadow.frag");
+
+	printf("Build Red House Shadow Shader\n");
+	redHouseShadowShader = createShader("Shader\\generalRedShadow.vert", "Shader\\generalRedShadow.frag");
+
+	printf("Build Terrain Shader\n");
 	terrainShader = new TerrainShader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
 	if (terrainShader == NULL) {
 		printf("error in creating a shader obeject \n");
@@ -428,7 +440,29 @@ void gameApp::createShaders(){
 	}
 }
 
+Shader *gameApp::createShader(char *vertex, char* frag){
+	int rc;
+	GLuint shaderId;
+	Shader *shader = new Shader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
+	if (shader == NULL) {
+		printf("error in creating a shader obeject \n");
+		assert(0);
+	}
+	rc = shader->createShaderProgram(vertex, frag, &shaderId);
+	if (rc != 0) {
+		printf("error in generating shader vs=%s, fs=%s \n", vertex, frag);
+		delete shader;
+		shader = NULL;
+		assert(0);
+	}
+	return shader;
+}
+
 void gameApp::createTerrainBuffer(){
+	terrainFrameBuf = 0;
+	glGenFramebuffersEXT(1, &terrainFrameBuf);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, terrainFrameBuf);
+
 	glGenTextures(1, &terrainTexId);
 	glBindTexture(GL_TEXTURE_2D, terrainTexId);
 
@@ -438,22 +472,22 @@ void gameApp::createTerrainBuffer(){
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
-	glGenFramebuffersEXT(1, &terrainFrameBuf);
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, terrainFrameBuf);
-
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, terrainTexId, 0);
 
-	GLenum frameStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-	if (frameStatus != GL_FRAMEBUFFER_COMPLETE_EXT){
+	//glDrawBuffer(GL_NONE);
+	//glReadBuffer(GL_NONE);
+
+	GLenum frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (frameStatus != GL_FRAMEBUFFER_COMPLETE){
 		printf("GL_FRAMEBUFFER_COMPLETE_EXT failed, CANNOT use FBO\n");
 	}
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
 }
 
 
@@ -485,8 +519,9 @@ int gameApp::initGame(void)
 	house1->setShader(defaultShader);
 	drawSurface->setShader(defaultShader);
 	depthSurface->setShader(terrainShader);
+	targetHouse->setShader(redHouseShader);
 
-	targetHouse->createShaderProg("Shader\\generalRed.vert", "Shader\\generalRed.frag");
+
 	// set the target house
 	targetHouse->loadModelOBJ("targethouse\\target.obj", &targetHouse->mVtxBuf, &targetHouse->mNumVtx, &targetHouse->mIndBuf, &targetHouse->mNumInd);
 	// load the textures
@@ -518,6 +553,10 @@ int gameApp::initGame(void)
 	cam = new camera();
 	cam->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
 	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
+
+	lightSource = new camera();
+	lightSource->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
+	lightSource->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
 
 	overheadCam = new camera();
 	overheadCam->setCamera(Vector3f(0, 60, 0), Vector3f(0, 0, 0), Vector3f(0, 0, -1));
@@ -739,6 +778,7 @@ void gameApp::reshapeFun(int w, int h)
 	// Enable perspective projection with fovy, aspect, zNear and zFar
 	gluPerspective(45.0f, aspect, 0.1f, 100.0f);
 	cam->setPerspectiveView(cam->fieldOfView,aspect,cam->nearPlane,cam->farPlane);
+	lightSource->setPerspectiveView(lightSource->fieldOfView, aspect, lightSource->nearPlane, lightSource->farPlane);
 
 }
  
