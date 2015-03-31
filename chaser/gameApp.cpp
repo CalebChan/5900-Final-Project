@@ -60,6 +60,9 @@
 #define GAME_UPDATE_FRAME_STATE_EVENT 1
 #define GAME_COLLISION_EVENT 2
 
+#define NEAR_PLANE 0.1
+#define FAR_PLANE 100.0
+
 /*******************************************************************************/
 // class static variables
 camera *gameApp::cam = NULL;
@@ -167,7 +170,7 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutInitWindowPosition(winPosx, winPosy);
 
 	// instuct openGL what window size ot use
-	glutInitWindowSize(SCREEN_WIDTH * 3, SCREEN_HEIGHT);		// no magic numbers
+	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);		// no magic numbers
 
 	// careate the fist window and obtain a handle to it 
 	wId = glutCreateWindow("My First Window");
@@ -315,21 +318,18 @@ void gameApp::renderFrame(void)
 	time_t currentTime, deltaTime;
 	glClearColor(0, 0, 0, 0.0);
 
-	glEnable(GL_SCISSOR_TEST);
+	//glEnable(GL_SCISSOR_TEST);
 	renderTerrainFrame();
 
-	scissorViewport(SCREEN_WIDTH * 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderRegularFrame();
+	//scissorViewport(SCREEN_WIDTH * 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//renderRegularFrame();
 
-	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderLightFrame(false);
-
-	
+	//scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//renderLightFrame(true);
 
 	glutSwapBuffers();
-
 
 	currentTime = clock();
 	deltaTime = currentTime - oldTime;
@@ -378,27 +378,23 @@ void gameApp::renderLightFrame(bool depthPass){
 
 void gameApp::renderTerrainFrame(){
 	// First pass
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, terrainFrameBuf);
-	//glBindTexture(GL_TEXTURE_2D, terrainTexId);
-	glCullFace(GL_FRONT);
+	//scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	//glGenerateMipmap(GL_TEXTURE_2D);
+	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, terrainFrameBuf);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
 	renderLightFrame(true);
-	glDrawBuffer(GL_BACK);
-	glReadBuffer(GL_BACK);
+
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-	//glBindTexture(GL_TEXTURE_2D, 0);
+
+
 	depthSurface->setMeshTexture(terrainTexId);
 
 	// Second pass
-	scissorViewport(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glCullFace(GL_BACK);
+	//scissorViewport(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	depthSurface->render(NULL, gameApp::lightSource);
+	depthSurface->render(NULL, gameApp::overheadCam);
 
 	depthSurface->revertTexture();
 	
@@ -469,8 +465,8 @@ void gameApp::createTerrainBuffer(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
@@ -552,22 +548,22 @@ int gameApp::initGame(void)
 	// set the global camera
 	cam = new camera();
 	cam->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
-	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
+	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) NEAR_PLANE, FAR_PLANE);
 
 	lightSource = new camera();
 	lightSource->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
-	lightSource->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
+	lightSource->setPerspectiveView(DEFAULT_FOV, 1, (float)NEAR_PLANE, FAR_PLANE);
 
 	overheadCam = new camera();
-	overheadCam->setCamera(Vector3f(0, 60, 0), Vector3f(0, 0, 0), Vector3f(0, 0, -1));
-	overheadCam->setPerspectiveView(DEFAULT_FOV, 1, (float) 0.2, 1000);
+	overheadCam->setCamera(Vector3f(0, -100, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
+	overheadCam->setPerspectiveView(DEFAULT_FOV, 1, (float)NEAR_PLANE, FAR_PLANE);
 
 
 	// set the surface
 	drawSurface->createSurface(20, 20, 60, 60);
 	drawSurface->loadTexture("surface\\grass_texture_256.tga");
 
-	depthSurface->createSurface(20, 20, 60, 60);
+	depthSurface->createSurface(10, 10, SCREEN_WIDTH / 10, SCREEN_HEIGHT / 10);
 	depthSurface->loadTexture("surface\\grass_texture_256.tga");
 	depthSurface->setOverheadCamera(overheadCam);
 

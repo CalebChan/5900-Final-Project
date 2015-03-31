@@ -457,8 +457,6 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, REN
 
 	glUseProgram(shader->getProgId());
 	// set up the mode to wireframe
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// set the transformation of the object
 	modelWorldMat = Matrix4f::translation(this->mPosition)*Matrix4f::scale(mScaleX, mScaleY, mScaleZ);
@@ -466,25 +464,11 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, REN
 
 	switch (type){
 	case NORMAL:
-	{
-		viewMat = cam->getViewMatrix(NULL);
-
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		break;
-	}
 	case DEPTH:
 	{
 		viewMat = cam->getViewMatrix(NULL);
 
-		modelWorldMat = viewMat * Matrix4f::identity();
+		modelWorldMat = viewMat * modelWorldMat;
 		// transfer to shader 
 		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
 

@@ -273,8 +273,6 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 
 	glUseProgram(shader->getProgId());
 	// set up the mode to wireframe
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// set the transformation of the object
 	// initial model2World transformation - it aligh the object so that it faces the position z-axis
@@ -285,27 +283,12 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 
 	switch (type){
 	case NORMAL:
-	{
-		viewMat = cam->getViewMatrix(NULL);
-
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		
-		break;
-	}
 	case DEPTH:
 	{
 		// set the camera position
 		viewMat = cam->getViewMatrix(NULL);
 
-		modelWorldMat = viewMat * Matrix4f::identity();
+		modelWorldMat = viewMat * modelWorldMat;
 		// transfer to shader 
 		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
 
@@ -349,8 +332,8 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 	glBindTexture(GL_TEXTURE_2D, tex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
 	glUniform1i(texLoc, 3);
-	GLint ttt = 0;
-	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
+	//GLint ttt = 0;
+	//glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
 
 	// redner the triangles
 	glBindVertexArray(mVao);

@@ -43,18 +43,17 @@ int DepthMeshSurface::render(Matrix4f *worldMat, camera *cam)
 	if (this->otherTex == -1){
 		this->otherTex = tex;
 	}
-	
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, this->otherTex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
 	glUniform1i(texLoc, 3);
-	GLint ttt = 0;
-	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
 
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
 	glBindVertexArray(mVao);
 	glDrawElements(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
 
-	glBindTexture(GL_TEXTURE_2D, 0);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	return 0;
 }
