@@ -13,7 +13,15 @@ in Data{
 varying vec2 tex1;
 varying vec4 shadowCoor;
 
-out vec4 color;
+layout(location = 0) out vec4 color;
+
+float LinearizeDepth(float depth)
+{
+    float near = 0.1; 
+    float far = 100.0; 
+    float z = depth * 2.0 - 1.0; // Back to NDC 
+    return (2.0 * near) / (far + near - z * (far - near));	
+}
 
 void main()
 
@@ -21,7 +29,7 @@ void main()
 
 	//color = vIn.colour; 
 	vec2 t = tex1;
-	color = texture2D(texHandle, t);
+	vec4 texColor = texture2D(texHandle, tex1);
 //	gl_FragColor = color; 	
 
 	vec4 shadowCoordinateWdivide = shadowCoor / shadowCoor.w ;
@@ -32,5 +40,5 @@ void main()
 	if (shadowCoor.w > 0.0)
 		shadow = distanceFromLight < shadowCoordinateWdivide.z ? 0.5 : 1.0 ;
 		
-	color = color * shadow;
+	color = texture2D(texHandle, tex1) * shadow;
 }

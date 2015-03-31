@@ -10,7 +10,6 @@ in Data{
 } vIn;
 
 varying vec2 tex1;
-varying vec4 shadowCoor;
 
 out vec4 color;
 
@@ -18,9 +17,9 @@ void main()
 
 {
 
-	color = vIn.colour * shadowCoor.w; 
+	color = vIn.colour; 
 	vec2 t = tex1;
-//	color = texture2D(texHandle, t);
+	color = texture2D(texHandle, t);
 //	gl_FragColor = color; 	
 
 }

@@ -332,8 +332,8 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 	glBindTexture(GL_TEXTURE_2D, tex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
 	glUniform1i(texLoc, 3);
-	//GLint ttt = 0;
-	//glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
+	GLint ttt = 0;
+	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
 
 	// redner the triangles
 	glBindVertexArray(mVao);

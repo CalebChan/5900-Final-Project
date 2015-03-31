@@ -43,10 +43,10 @@ int DepthMeshSurface::render(Matrix4f *worldMat, camera *cam)
 	if (this->otherTex == -1){
 		this->otherTex = tex;
 	}
-	glActiveTexture(GL_TEXTURE3);
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, this->otherTex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
-	glUniform1i(texLoc, 3);
+	glUniform1i(texLoc, 1);
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	
