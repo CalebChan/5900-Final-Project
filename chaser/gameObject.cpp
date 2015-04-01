@@ -586,3 +586,29 @@ int gameObject::yaw(float angleDeg)
 	return 0;
 }
 
+
+
+void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj, Matrix4f bias, GLuint shadowTexture, RENDER_MAT_TYPE type){
+	glUseProgram(shader->getProgId());
+
+	model = view * model;
+	// transfer to shader 
+	shader->copyMatrixToShader(model, "modelWorldViewMat");
+	// transfer to shader 
+	shader->copyMatrixToShader(proj, "projMat");
+
+	switch (type){
+	case LIGHT:
+	{
+		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
+		shader->copyMatrixToShader(bias, "biasMat");
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, shadowTexture);
+
+		GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "shadowMap");
+		glUniform1i(texLoc, 0);
+		break;
+	}
+	}
+}

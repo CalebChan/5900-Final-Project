@@ -94,7 +94,7 @@ DepthMeshSurface *gameApp::depthSurface;
 
 std::vector<DepthMeshSurface *> gameApp::depthEntities;
 
-unsigned char gameApp::texture[3 * SCREEN_HEIGHT * SCREEN_WIDTH];
+int gameApp::renderMode = 0;
 
 /******************************************************************/
 /*
@@ -110,7 +110,6 @@ Return:
 
 gameApp::gameApp(void) 
 {
-	ZeroMemory(texture, sizeof(texture));
 	myApp = this;
 }
 
@@ -170,7 +169,7 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutInitWindowPosition(winPosx, winPosy);
 
 	// instuct openGL what window size ot use
-	glutInitWindowSize(SCREEN_WIDTH * 3, SCREEN_HEIGHT);		// no magic numbers
+	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);		// no magic numbers
 
 	// careate the fist window and obtain a handle to it 
 	wId = glutCreateWindow("My First Window");
@@ -318,7 +317,24 @@ void gameApp::renderFrame(void)
 	time_t currentTime, deltaTime;
 	glClearColor(0, 0, 0, 0.0);
 
-	glEnable(GL_SCISSOR_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	switch (renderMode % 4){
+	case 0:
+		renderTerrainFrame();
+		break;
+	case 1:
+		renderLightDepthFrame();
+		break;
+	case 2:
+		renderRegularFrame();
+		break;
+	case 3:
+		renderLightFrame(true, gameApp::cam);
+		break;
+	}
+
+
+	/*glEnable(GL_SCISSOR_TEST);
 	renderTerrainFrame();
 
 	scissorViewport(SCREEN_WIDTH * 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -327,7 +343,7 @@ void gameApp::renderFrame(void)
 
 	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderLightFrame(true);
+	renderLightFrame(true);*/
 
 	glutSwapBuffers();
 
@@ -342,10 +358,10 @@ void gameApp::renderFrame(void)
 void gameApp::renderRegularFrame(){
 
 	Matrix4f model = Matrix4f::identity();
-	Matrix4f view = gameApp::cam->getViewMatrix(NULL);
-	Matrix4f proj = gameApp::cam->getProjectionMatrix(NULL);
+	Matrix4f view = gameApp::lightSource->getViewMatrix(NULL);
+	Matrix4f proj = gameApp::lightSource->getProjectionMatrix(NULL);
 
-	Matrix4f depthMat = proj * view * model;
+	Matrix4f depthMat = proj * view;
 
 	Matrix4f bias(	Vector4f(0.5, 0, 0, 0),
 					Vector4f(0, 0.5, 0, 0),
@@ -357,53 +373,83 @@ void gameApp::renderRegularFrame(){
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
 		Shader *tmp = gameDynamicEntities.at(i)->getShader();
 		gameDynamicEntities.at(i)->setShader(defaultShadowShader);
-		gameDynamicEntities.at(i)->render(NULL, gameApp::lightSource, &biasDepth, LIGHT);
+		gameDynamicEntities.at(i)->render(NULL, gameApp::cam, &bias, LIGHT);
 		gameDynamicEntities.at(i)->setShader(tmp);
 	}
 	for (i = 0; i < gameStaticEntities.size(); i++) {
 		Shader *tmp = gameStaticEntities.at(i)->getShader();
 		gameStaticEntities.at(i)->setShader(defaultShadowShader);
-		gameStaticEntities.at(i)->render(NULL, gameApp::lightSource, &biasDepth, LIGHT);
+		gameStaticEntities.at(i)->render(NULL, gameApp::cam, &bias, LIGHT);
 		gameStaticEntities.at(i)->setShader(tmp);
 	}
 }
 
-void gameApp::renderLightFrame(bool depthPass){
+void gameApp::renderLightFrame(bool depthPass, camera *cam){
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
-		gameDynamicEntities.at(i)->render(NULL, gameApp::cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
+		gameDynamicEntities.at(i)->render(NULL, cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
 	}
 	for (i = 0; i < gameStaticEntities.size(); i++) {
-		gameStaticEntities.at(i)->render(NULL, gameApp::cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
+		gameStaticEntities.at(i)->render(NULL, cam, NULL, (depthPass == true) ? DEPTH : NORMAL);
 	}
 }
 
 void gameApp::renderTerrainFrame(){
 	// First pass
 	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
-	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glClearColor(0, 0, 0, 0.0);
 	glClear(GL_DEPTH_BUFFER_BIT);
-
+	glEnable(GL_DEPTH_TEST);
+	
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 
-	renderLightFrame(true);
-	
+	renderLightFrame(true, gameApp::lightSource);
+
 	glDrawBuffer(GL_BACK);
 	glReadBuffer(GL_BACK);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	depthSurface->setMeshTexture(terrainTexId);
 
 	// Second pass
-	scissorViewport(SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	depthSurface->render(NULL, gameApp::overheadCam);
 
 	depthSurface->revertTexture();
 }
+
+void gameApp::renderLightDepthFrame(){
+	// First pass
+	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	renderLightFrame(true, gameApp::cam);
+
+	glDrawBuffer(GL_BACK);
+	glReadBuffer(GL_BACK);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	depthSurface->setMeshTexture(terrainTexId);
+
+	// Second pass
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	depthSurface->render(NULL, gameApp::overheadCam);
+
+	depthSurface->revertTexture();
+}
+
 
 void gameApp::scissorViewport(int x, int y, int w, int h){
 	glScissor(x, y, w, h);
@@ -474,10 +520,10 @@ void gameApp::createTerrainBuffer(){
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 
@@ -526,7 +572,8 @@ int gameApp::initGame(void)
 	house1->setShader(defaultShader);
 	drawSurface->setShader(defaultShader);
 	depthSurface->setShader(terrainShader);
-	targetHouse->setShader(redHouseShader);
+	//targetHouse->setShader(redHouseShader);
+	targetHouse->setShader(defaultShader);
 
 
 	// set the target house
@@ -566,16 +613,16 @@ int gameApp::initGame(void)
 	lightSource->setPerspectiveView(DEFAULT_FOV, 1, (float)NEAR_PLANE, FAR_PLANE);
 
 	overheadCam = new camera();
-	overheadCam->setCamera(Vector3f(0, -60, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
+	overheadCam->setCamera(Vector3f(0, -30, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
 	overheadCam->setPerspectiveView(DEFAULT_FOV, 1, (float)NEAR_PLANE, FAR_PLANE);
 
 
 	// set the surface
-	drawSurface->createSurface(20, 20, 60, 60);
+	drawSurface->createSurface(1, 1, 30, 30);
 	drawSurface->loadTexture("surface\\grass_texture_256.tga");
 
 	//depthSurface->createSurface(10, 10, SCREEN_WIDTH / 10, SCREEN_HEIGHT / 10);
-	depthSurface->createSurface(20, 20, 60, 60);
+	depthSurface->createSurface(1, 1, 30, 30);
 	depthSurface->loadTexture("surface\\grass_texture_256.tga");
 	depthSurface->setOverheadCamera(overheadCam);
 
@@ -708,16 +755,16 @@ void gameApp::keyboardFun(unsigned char key, int x, int y)
 			cam->moveForward(-MAX_CAM_TURN_SPEED);
 			break;
 		case 'a':
-			cam->yaw((float) .2);
+			cam->yaw((float)CAMERA_MOVE_SPEED);
 			break;
 		case 'A':
-			cam->yaw(1);
+			cam->yaw(FAST_CAMERA_MOVE_SPEED);
 			break;
 		case 'D':
-			cam->yaw(-1);
+			cam->yaw(-FAST_CAMERA_MOVE_SPEED);
 			break;
 		case 'd':
-			cam->yaw((float)-.2);
+			cam->yaw((float)-CAMERA_MOVE_SPEED);
 			break;
 		case 'z':
 			cam->zoomIn();
@@ -739,16 +786,27 @@ void gameApp::specialKeyboardFun(int key, int x, int y)
 			exit(1);
 			break;
 		case GLUT_KEY_LEFT:
-			cam->roll((float) .2);
+			cam->roll((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_UP:
-			cam->pitch((float) .2);
+			cam->pitch((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_RIGHT:
-			cam->roll((float) -.2);
+			cam->roll((float)-CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_DOWN:
-			cam->pitch((float) -.2);
+			cam->pitch((float)-CAMERA_MOVE_SPEED);
+			break;
+		case GLUT_KEY_PAGE_UP:
+			renderMode++;
+			printf("Render Mode : %d\n", renderMode);
+			break;
+		case GLUT_KEY_PAGE_DOWN:
+			renderMode--;
+			if (renderMode < 0){
+				renderMode = 0;
+			}
+			printf("Render Mode : %d\n", renderMode);
 			break;
 	}
 }
@@ -779,14 +837,15 @@ void gameApp::reshapeFun(int w, int h)
 	// Compute aspect ratio of the new window
 	aspect = (float)w / (float)h;
 
-
+	printf("Resize window W : %d  H : %d\n", w, h);
 	// Set the state to accept projection information
 	glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
 	glLoadIdentity();             
 	// Enable perspective projection with fovy, aspect, zNear and zFar
-	gluPerspective(45.0f, aspect, 0.1f, 100.0f);
+	gluPerspective(DEFAULT_FOV, aspect, 0.1f, 100.0f);
 	cam->setPerspectiveView(cam->fieldOfView,aspect,cam->nearPlane,cam->farPlane);
 	lightSource->setPerspectiveView(lightSource->fieldOfView, aspect, lightSource->nearPlane, lightSource->farPlane);
+	overheadCam->setPerspectiveView(overheadCam->fieldOfView, aspect, overheadCam->nearPlane, overheadCam->farPlane);
 
 }
  

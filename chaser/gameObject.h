@@ -108,4 +108,7 @@ private:
 	int updateOrientation(Vector3f rotVector, float angleRad); // update the camera's orientation in space
 
 
+
+protected:
+	void renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj, Matrix4f bias, GLuint shadowTexture, RENDER_MAT_TYPE type);
 };

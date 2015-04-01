@@ -31,12 +31,12 @@ int DepthMeshSurface::render(Matrix4f *worldMat, camera *cam)
 	if (worldMat != NULL) modelWorldMat = *worldMat *  modelWorldMat;
 
 	// set the camera position
-	viewMat = cam->getViewMatrix(NULL);
+	viewMat = overheadCam->getViewMatrix(NULL);
 	modelWorldMat = viewMat * modelWorldMat;
 	// transfer to shader 
 	shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
 	// set the camera position
-	projMat = cam->getProjectionMatrix(NULL);
+	projMat = overheadCam->getProjectionMatrix(NULL);
 	// transfer to shader 
 	shader->copyMatrixToShader(projMat, "projMat");
 

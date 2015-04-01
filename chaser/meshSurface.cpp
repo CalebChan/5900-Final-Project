@@ -199,7 +199,7 @@ int meshSurface::createSurface(int numSurfaceRows, int numSurfaceCols, float hei
 	// Fill the vertex buffer with positions
 	k = 0;
 	dw = dh = 0.0;  
-	float textureRrepeatFactor = (float) 0.2;
+	float textureRrepeatFactor = (float) 1;
 	dTexX = (float) 1.0/(textureRrepeatFactor*mNumCols);
 	dTexY = (float) 1.0/(textureRrepeatFactor*mNumRows);
 	deltaHeight = (float)height / mNumRows; // increment of height
@@ -448,64 +448,14 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam)
 }
 
 int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type){
-	static int angle = 0;
-	static float step = 1;
-	float rad = 0;
-	static int i = 0, j = 0, k = 0;
 	Matrix4f modelWorldMat;  // model and world transformation. 
-	Matrix4f viewMat, projMat;
-
-	glUseProgram(shader->getProgId());
-	// set up the mode to wireframe
-
-	// set the transformation of the object
 	modelWorldMat = Matrix4f::translation(this->mPosition)*Matrix4f::scale(mScaleX, mScaleY, mScaleZ);
-	if (worldMat != NULL) modelWorldMat = *worldMat *  modelWorldMat;
 
-	switch (type){
-	case NORMAL:
-	case DEPTH:
-	{
-		viewMat = cam->getViewMatrix(NULL);
+	Matrix4f bias = (otherMat == NULL) ? Matrix4f::identity() : *otherMat;
 
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		break;
-	}
-	case LIGHT:
-	{
+	renderShaderSetup(modelWorldMat, cam->getViewMatrix(NULL), cam->getProjectionMatrix(NULL), bias, gameApp::terrainTexId, type);
 	
-		viewMat = cam->getViewMatrix(NULL);
 
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		shader->copyMatrixToShader(*otherMat, "biasMat");
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gameApp::terrainTexId);
-
-		GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "shadowMap");
-		glUniform1i(texLoc, 0);
-
-		break;
-	}
-	}
-	//	glActiveTexture(GL_TEXTURE0 + 2);
-	//glBindTexture(GL_TEXTURE_2D, this->tex);
 	// redner the triangles
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, tex);
@@ -599,7 +549,7 @@ int meshSurface::loadTexture(char * fileName)
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//	glBindTexture(GL_TEXTURE_2D,0);
+	glBindTexture(GL_TEXTURE_2D,0);
 
 //	loadSkyboxTexturesColour512(&texCube, cubeImageFileName);
 

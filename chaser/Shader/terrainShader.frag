@@ -12,6 +12,6 @@ void main(){
 	//color = texture2D(texHandle, t); 
 	
 	float Depth = texture(texHandle, texLocal).x;
-	Depth = 1.0 - (1.0 - Depth) * 50.0;
-    color = vec4(vec3(Depth), 1.0);
+	Depth = 1.0 - (1.0 - Depth) * 40.0;
+    	color = vec4(vec3(Depth), 1.0);
 }

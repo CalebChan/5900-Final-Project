@@ -13,4 +13,7 @@
 #define GAME_OVER (long)999
 #define GAME_WON (long)998
 
+#define CAMERA_MOVE_SPEED 0.5
+#define FAST_CAMERA_MOVE_SPEED 2
+
 #endif

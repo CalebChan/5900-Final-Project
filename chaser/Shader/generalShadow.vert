@@ -26,6 +26,6 @@ void main(){
 	vOut.colour = vColour;
 	vOut.tex = vTex;
 	tex1 = vTex;
-	shadowCoor = biasMat * vPos;
+	shadowCoor = biasMat * projMat * modelWorldViewMat * vPos;
 	
 }

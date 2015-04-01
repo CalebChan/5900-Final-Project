@@ -78,8 +78,8 @@
 // DEFINES
 
 #define GAME_TITLE_SISE 128
-#define SCREEN_HEIGHT 600
-#define SCREEN_WIDTH 400
+#define SCREEN_HEIGHT 900
+#define SCREEN_WIDTH 1600
 
 
 class gameApp
@@ -129,13 +129,14 @@ private:
 	static bool mode;
 	static bool runningGame;
 	static DepthMeshSurface *depthSurface;
+
+	static int renderMode;
+
 private:
 	static void scissorViewport(int x, int y, int w, int h);
 	House* createHouse(Vector3f pos, Vector3f orientation, Shader *shader);
 	void createShaders();
 	void createTerrainBuffer();
-
-	static unsigned char texture[3 * 400 * 600];
 
 protected:
 	static Shader *defaultShader;
@@ -147,7 +148,8 @@ protected:
 protected:
 	static void renderTerrainFrame();
 	static void renderRegularFrame();
-	static void renderLightFrame(bool depthPass);
+	static void renderLightFrame(bool depthPass, camera *cam);
+	static void renderLightDepthFrame();
 
 	Shader *createShader(char* vertex, char* frag);
 };

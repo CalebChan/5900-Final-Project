@@ -231,9 +231,6 @@ int Car::render(int time, Matrix4f *worldMat, camera *cam)
 	// redner the triangles
 	glBindVertexArray(mVao);
 	glDrawArrays(GL_TRIANGLES, 0,mNumInd);
-	//glDrawArrays(GL_QUADS, 0,mNumInd);
-
-	//glDrawArrays(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
 
    
@@ -264,69 +261,15 @@ int Car::render(Matrix4f *worldMat, camera *cam)
 
 
 int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_TYPE type){
-	static int angle = 0;
-	static float step = 1;
-	float rad = 0;
-	static int i = 0, j = 0, k = 0;
+	
 	Matrix4f modelWorldMat;  // model and world transformation. 
 	Matrix4f modelMat, viewMat, projMat;
-
-	glUseProgram(shader->getProgId());
-	// set up the mode to wireframe
-
-	// set the transformation of the object
-	// initial model2World transformation - it aligh the object so that it faces the position z-axis
-
-	modelMat = Matrix4f::rotateY(this->mYaw, 1)*Matrix4f::scale(mScaleX, mScaleY, mScaleZ);
+	modelMat = Matrix4f::rotateY(this->mYaw, 1) * Matrix4f::scale(mScaleX, mScaleY, mScaleZ);
 	modelWorldMat = Matrix4f::objectMatrix(this->mPosition, this->mPosition + this->lookAtVector, this->upVector)*modelMat;
-	//if (worldMat != NULL) modelWorldMat = *worldMat *  modelWorldMat;
+	
+	Matrix4f bias = (otherMat == NULL) ? Matrix4f::identity() : *otherMat;
 
-	switch (type){
-	case NORMAL:
-	case DEPTH:
-	{
-		// set the camera position
-		viewMat = cam->getViewMatrix(NULL);
-
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		break;
-	}
-	case LIGHT:
-	{
-		viewMat = cam->getViewMatrix(NULL);
-
-		modelWorldMat = viewMat * modelWorldMat;
-		// transfer to shader 
-		shader->copyMatrixToShader(modelWorldMat, "modelWorldViewMat");
-
-		// set the camera position
-		projMat = cam->getProjectionMatrix(NULL);
-
-		// transfer to shader 
-		shader->copyMatrixToShader(projMat, "projMat");
-		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
-		shader->copyMatrixToShader(*otherMat, "biasMat");
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gameApp::terrainTexId);
-
-		GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "shadowMap");
-		glUniform1i(texLoc, 0);
-		break;
-	}
-	}
-
-	// transfer the texture handle to shader
-	//	glActiveTexture(GL_TEXTURE0 + 1);
-	//	glBindTexture(GL_TEXTURE_2D, this->tex);
+	renderShaderSetup(modelWorldMat, cam->getViewMatrix(NULL), cam->getProjectionMatrix(NULL), bias, gameApp::terrainTexId, type);
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, tex);

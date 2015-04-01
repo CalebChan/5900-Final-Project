@@ -13,6 +13,7 @@ varying vec2 tex1;
 varying vec4 shadowCoor;
 
 out vec4 color;
+//layout(location = 0) out float fragmentdepth;
 
 float LinearizeDepth(float depth)
 {
@@ -25,6 +26,6 @@ float LinearizeDepth(float depth)
 void main()
 {             
     float depth = LinearizeDepth(gl_FragCoord.z);
-    color = vec4(vec3(depth), 1.0f);
-	//color = texture2D(texHandle, tex1);
+    //color = gl_FragCoord.z;
+	color = texture2D(texHandle, tex1);
 }
