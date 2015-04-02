@@ -307,6 +307,18 @@ Return:
 
 */
 
+enum RENDER_SWITCH_TYPE{
+	RENDER_SOURCE_AS_LIGHT,
+
+	LAST_POSITION,
+
+	DISPLAY_FINAL_FRAME,
+	DISPLAY_LIGHT_FRAME,
+	RENDER_CAM_AS_LIGHT,
+	
+	
+};
+
 
 
 void gameApp::renderFrame(void)
@@ -318,32 +330,20 @@ void gameApp::renderFrame(void)
 	glClearColor(0, 0, 0, 0.0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	switch (renderMode % 4){
-	case 0:
+	switch (renderMode % LAST_POSITION){
+	case RENDER_SOURCE_AS_LIGHT:
 		renderTerrainFrame();
 		break;
-	case 1:
+	case RENDER_CAM_AS_LIGHT:
 		renderLightDepthFrame();
 		break;
-	case 2:
-		renderRegularFrame();
-		break;
-	case 3:
+	case DISPLAY_LIGHT_FRAME:
 		renderLightFrame(true, gameApp::cam);
 		break;
+	case DISPLAY_FINAL_FRAME:
+		renderRegularFrame();
+		break;
 	}
-
-
-	/*glEnable(GL_SCISSOR_TEST);
-	renderTerrainFrame();
-
-	scissorViewport(SCREEN_WIDTH * 2, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderRegularFrame();
-
-	scissorViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderLightFrame(true);*/
 
 	glutSwapBuffers();
 
@@ -356,30 +356,22 @@ void gameApp::renderFrame(void)
 }
 
 void gameApp::renderRegularFrame(){
-
-	Matrix4f model = Matrix4f::identity();
 	Matrix4f view = gameApp::lightSource->getViewMatrix(NULL);
 	Matrix4f proj = gameApp::lightSource->getProjectionMatrix(NULL);
 
 	Matrix4f depthMat = proj * view;
 
-	Matrix4f bias(	Vector4f(0.5, 0, 0, 0),
-					Vector4f(0, 0.5, 0, 0),
-					Vector4f(0, 0, 0.5, 0),
-					Vector4f(0.5, 0.5, 0.5, 1));
-	Matrix4f biasDepth = bias * depthMat;
-
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
 		Shader *tmp = gameDynamicEntities.at(i)->getShader();
 		gameDynamicEntities.at(i)->setShader(defaultShadowShader);
-		gameDynamicEntities.at(i)->render(NULL, gameApp::cam, &bias, LIGHT);
+		gameDynamicEntities.at(i)->render(NULL, gameApp::cam, &depthMat, LIGHT);
 		gameDynamicEntities.at(i)->setShader(tmp);
 	}
 	for (i = 0; i < gameStaticEntities.size(); i++) {
 		Shader *tmp = gameStaticEntities.at(i)->getShader();
 		gameStaticEntities.at(i)->setShader(defaultShadowShader);
-		gameStaticEntities.at(i)->render(NULL, gameApp::cam, &bias, LIGHT);
+		gameStaticEntities.at(i)->render(NULL, gameApp::cam, &depthMat, LIGHT);
 		gameStaticEntities.at(i)->setShader(tmp);
 	}
 }
@@ -401,53 +393,51 @@ void gameApp::renderTerrainFrame(){
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
+	//glDrawBuffer(GL_NONE);
+	//glReadBuffer(GL_NONE);
 
 	renderLightFrame(true, gameApp::lightSource);
 
-	glDrawBuffer(GL_BACK);
-	glReadBuffer(GL_BACK);
-	
+	//glDrawBuffer(GL_BACK);
+	//glReadBuffer(GL_BACK);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	depthSurface->setMeshTexture(terrainTexId);
+	
+	
+	//depthSurface->setMeshTexture(terrainTexId);
 
 	// Second pass
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	depthSurface->render(NULL, gameApp::overheadCam);
-
-	depthSurface->revertTexture();
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderRegularFrame();
 }
 
 void gameApp::renderLightDepthFrame(){
 	// First pass
+
 	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
 	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
+	//glDrawBuffer(GL_NONE);
+	//glReadBuffer(GL_NONE);
 
-	renderLightFrame(true, gameApp::cam);
+	renderLightFrame(true, gameApp::lightSource);
 
-	glDrawBuffer(GL_BACK);
-	glReadBuffer(GL_BACK);
+	//glDrawBuffer(GL_BACK);
+	//glReadBuffer(GL_BACK);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT);
 
-	depthSurface->setMeshTexture(terrainTexId);
+	//depthSurface->setMeshTexture(terrainTexId);
 
 	// Second pass
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	depthSurface->render(NULL, gameApp::overheadCam);
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderRegularFrame();
 
-	depthSurface->revertTexture();
+
+	//depthSurface->revertTexture();
 }
 
 
@@ -510,37 +500,40 @@ Shader *gameApp::createShader(char *vertex, char* frag){
 }
 
 void gameApp::createTerrainBuffer(){
+
+	terrainFrameBuf = 0;
+	glGenFramebuffers(1, &terrainFrameBuf);
+	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
+
+	GLfloat border[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glGenTextures(1, &terrainTexId);
 	glBindTexture(GL_TEXTURE_2D, terrainTexId);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
+	//glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
 	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-
-	terrainFrameBuf = 0;
-	glGenFramebuffers(1, &terrainFrameBuf);
-	glBindFramebuffer(GL_FRAMEBUFFER, terrainFrameBuf);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, terrainTexId, 0);
 
-	//glDrawBuffer(GL_NONE);
-	//glReadBuffer(GL_NONE);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
 
 	GLenum frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (frameStatus != GL_FRAMEBUFFER_COMPLETE){
 		printf("GL_FRAMEBUFFER_COMPLETE_EXT failed, CANNOT use FBO\n");
 	}
 	
-	//glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
@@ -605,11 +598,12 @@ int gameApp::initGame(void)
 
 	// set the global camera
 	cam = new camera();
-	cam->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
+	//cam->setCamera(Vector3f(0, 5, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
+	cam->setCamera(Vector3f(0, 30, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
 	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) NEAR_PLANE, FAR_PLANE);
 
 	lightSource = new camera();
-	lightSource->setCamera(Vector3f(0, 10, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
+	lightSource->setCamera(Vector3f(0, 5, 40), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
 	lightSource->setPerspectiveView(DEFAULT_FOV, 1, (float)NEAR_PLANE, FAR_PLANE);
 
 	overheadCam = new camera();
@@ -618,11 +612,11 @@ int gameApp::initGame(void)
 
 
 	// set the surface
-	drawSurface->createSurface(1, 1, 30, 30);
+	drawSurface->createSurface(1, 1, 40, 40);
 	drawSurface->loadTexture("surface\\grass_texture_256.tga");
 
 	//depthSurface->createSurface(10, 10, SCREEN_WIDTH / 10, SCREEN_HEIGHT / 10);
-	depthSurface->createSurface(1, 1, 30, 30);
+	depthSurface->createSurface(1, 1, 40, 40);
 	depthSurface->loadTexture("surface\\grass_texture_256.tga");
 	depthSurface->setOverheadCamera(overheadCam);
 
@@ -847,6 +841,9 @@ void gameApp::reshapeFun(int w, int h)
 	lightSource->setPerspectiveView(lightSource->fieldOfView, aspect, lightSource->nearPlane, lightSource->farPlane);
 	overheadCam->setPerspectiveView(overheadCam->fieldOfView, aspect, overheadCam->nearPlane, overheadCam->farPlane);
 
+	glBindTexture(GL_TEXTURE_2D, terrainTexId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
  
 

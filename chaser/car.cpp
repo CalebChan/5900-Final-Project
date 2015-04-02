@@ -283,7 +283,7 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 	glDrawArrays(GL_TRIANGLES, 0, mNumInd);
 	glBindVertexArray(0);
 
-
+	glBindTexture(GL_TEXTURE_2D, 0);
 	return 0;
 }
 

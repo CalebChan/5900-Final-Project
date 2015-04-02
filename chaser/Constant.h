@@ -8,7 +8,7 @@
 
 #define DEFAULT_PREY_LOOK_AT_VECTOR Vector3f(-6, 0, -6)
 
-#define DEFAULT_FOV 60.0f
+#define DEFAULT_FOV 45.0f
 
 #define GAME_OVER (long)999
 #define GAME_WON (long)998

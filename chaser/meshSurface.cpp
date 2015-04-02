@@ -461,8 +461,6 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, REN
 	glBindTexture(GL_TEXTURE_2D, tex);
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
 	glUniform1i(texLoc, 3);
-	GLint ttt = 0;
-	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
 
 	glBindVertexArray(mVao);
 	glDrawElements(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);

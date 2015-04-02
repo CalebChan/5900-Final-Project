@@ -591,18 +591,17 @@ int gameObject::yaw(float angleDeg)
 void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj, Matrix4f bias, GLuint shadowTexture, RENDER_MAT_TYPE type){
 	glUseProgram(shader->getProgId());
 
-	model = view * model;
+	//model = view * model;
 	// transfer to shader 
 	shader->copyMatrixToShader(model, "modelWorldViewMat");
 	// transfer to shader 
-	shader->copyMatrixToShader(proj, "projMat");
+	shader->copyMatrixToShader(proj * view, "projMat");
 
 	switch (type){
 	case LIGHT:
 	{
 		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
-		shader->copyMatrixToShader(bias, "biasMat");
-
+		shader->copyMatrixToShader(bias, "lightPVMat");
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, shadowTexture);
 

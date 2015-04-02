@@ -25,7 +25,7 @@ float LinearizeDepth(float depth)
 
 void main()
 {             
-    float depth = LinearizeDepth(gl_FragCoord.z);
-    //color = gl_FragCoord.z;
+    //float depth = LinearizeDepth(gl_FragCoord.z);
+    //color = vec4(depth);
 	color = texture2D(texHandle, tex1);
 }

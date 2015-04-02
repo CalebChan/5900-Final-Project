@@ -1,6 +1,7 @@
 #version 330 core
 
 uniform sampler2D texHandle;
+//uniform sampler2DShadow shadowMap;
 uniform sampler2D shadowMap;
 
 in Data{
@@ -18,17 +19,18 @@ out vec4 color;
 void main()
 
 {
-	vec4 shadowCoordinateWdivide = shadowCoor / shadowCoor.w ;
-		
-	// Used to lower moiré pattern and self-shadowing
-	shadowCoordinateWdivide.z += 0.0005;
+	vec4 shadowPos = shadowCoor / shadowCoor.w;
 	
-	float distanceFromLight = texture2D(shadowMap,shadowCoordinateWdivide.st).z;
-	
+	float distanceFromLight = texture2D(shadowMap, shadowPos.st).z;
 	float shadow = 1.0;
-	if (shadowCoor.w > 0.0)
-		shadow = distanceFromLight < shadowCoordinateWdivide.z ? 0.5 : 1.0 ;
+	if (shadowCoor.w > 0){
+		if (distanceFromLight < shadowPos.z - 0.0005){
+			shadow = 0.5;
+		}
+	}
+	vec4 ModelColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	color = shadow * ModelColor;
 	
-	
-	color =	 shadow * texture2D(texHandle, tex1);
+	/*float shadow = textureProj(shadowMap, shadowCoor);
+    color = texture2D(texHandle, tex1) * shadow;*/
 }

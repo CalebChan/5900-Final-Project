@@ -2,7 +2,7 @@
 
 uniform mat4 modelWorldViewMat; 
 uniform mat4 projMat;
-uniform mat4 biasMat;
+uniform mat4 lightPVMat;
 
 in vec4 vPos;		// vertex position
 in vec4 vNormal;	// vertex normal
@@ -25,7 +25,12 @@ void main(){
 	vOut.pos = gl_Position;
 	vOut.colour = vColour;
 	vOut.tex = vTex;
-	tex1 = vTex;
-	shadowCoor = biasMat * projMat * modelWorldViewMat * vPos;
-	
+	tex1 = vTex;	
+	const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0,
+                              0.0, 0.5, 0.0, 0.0,
+                              0.0, 0.0, 0.5, 0.0,
+                              0.5, 0.5, 0.5, 1.0);
+							  
+	vec4 lightCoor = lightPVMat * modelWorldViewMat * vPos;
+	shadowCoor = biasMat * lightCoor;
 }
