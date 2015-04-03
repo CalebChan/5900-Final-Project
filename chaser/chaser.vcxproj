@@ -24,6 +24,7 @@
     <ClCompile Include="SkyBox.cpp" />
     <ClCompile Include="DepthMeshSurface.cpp" />
     <ClCompile Include="TerrainShader.cpp" />
+    <ClCompile Include="VisibleTexture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="gameApp.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="DepthMeshSurface.h" />
+    <ClInclude Include="VisibleTexture.h" />
     <ClInclude Include="TerrainShader.h" />
     <ClInclude Include="House.h" />
     <ClInclude Include="meshSurface.h" />

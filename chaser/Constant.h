@@ -16,4 +16,7 @@
 #define CAMERA_MOVE_SPEED 0.5
 #define FAST_CAMERA_MOVE_SPEED 2
 
+#define SCREEN_HEIGHT 900
+#define SCREEN_WIDTH 1600
+
 #endif

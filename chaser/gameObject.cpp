@@ -598,7 +598,7 @@ void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj,
 	shader->copyMatrixToShader(proj * view, "projMat");
 
 	switch (type){
-	case LIGHT:
+	case SHADOW:
 	{
 		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
 		shader->copyMatrixToShader(bias, "lightPVMat");

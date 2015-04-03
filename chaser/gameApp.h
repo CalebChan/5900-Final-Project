@@ -74,12 +74,11 @@
 
 #include "TerrainShader.h"
 #include "DepthMeshSurface.h"
+#include "VisibleTexture.h"
 
 // DEFINES
 
 #define GAME_TITLE_SISE 128
-#define SCREEN_HEIGHT 900
-#define SCREEN_WIDTH 1600
 
 
 class gameApp
@@ -125,12 +124,15 @@ public:
 
 private:
 	static camera *overheadCam;
+	static camera *depthTextureCam;
 	static camera *lightSource;
 	static bool mode;
 	static bool runningGame;
 	static DepthMeshSurface *depthSurface;
 
 	static int renderMode;
+
+	static VisibleTexture *visText;
 
 private:
 	static void scissorViewport(int x, int y, int w, int h);
@@ -146,10 +148,14 @@ protected:
 	static Shader *defaultShadowShader;
 	static Shader *redHouseShadowShader;
 protected:
-	static void renderTerrainFrame();
-	static void renderRegularFrame();
-	static void renderLightFrame(bool depthPass, camera *cam);
-	static void renderLightDepthFrame();
+	static void renderScene(RENDER_MAT_TYPE type, camera *viewPoint);
+	
+	
+	static void renderDepthPass();
+	static void renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam);
+	static void renderVisibilityPass();
+
+	static void renderDepthMap();
 
 	Shader *createShader(char* vertex, char* frag);
 };
