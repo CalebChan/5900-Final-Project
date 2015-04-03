@@ -75,6 +75,7 @@
 #include "TerrainShader.h"
 #include "DepthMeshSurface.h"
 #include "VisibleTexture.h"
+#include "PointOfView.h"
 
 // DEFINES
 
@@ -99,7 +100,7 @@ private:
 	int wId;		// the window handle 
 	static meshSurface *drawSurface;
 	static Chaser  *chaserYellowKia;
-	static camera *cam;		// one general camera
+	static PointOfView *cam;		// one general camera
 	static std::vector<gameObject *> gameStaticEntities;	// these entities do not change with time
 	static std::vector<gameObject *> gameDynamicEntities; // these entities' attributes change with time
 protected:
@@ -142,17 +143,19 @@ private:
 
 protected:
 	static Shader *defaultShader;
-	static TerrainShader *terrainShader;
 	static Shader *redHouseShader;
-
 	static Shader *defaultShadowShader;
 	static Shader *redHouseShadowShader;
+	static Shader *blackWhiteShadowShader;
+	static Shader *blackWhiteTerrainShadowShader;
+
+	static TerrainShader *terrainShader;
 protected:
 	static void renderScene(RENDER_MAT_TYPE type, camera *viewPoint);
 	
 	
 	static void renderDepthPass();
-	static void renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam);
+	static void renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam, Shader *terrainShader = NULL);
 	static void renderVisibilityPass();
 
 	static void renderDepthMap();

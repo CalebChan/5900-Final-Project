@@ -30,11 +30,9 @@ void main()
 	
 	float distanceFromLight = texture2D(shadowMap, shadowPos.xy).z;
 	float shadow = 1.0;
-	if (shadowCoor.w > 0){
-		for (int i = 0; i < 4; i++){
-			if (texture2D(shadowMap, shadowPos.xy + poissonDisk[i]/700.0).z < shadowPos.z - 0.00005){
-				shadow -= 0.2;
-			}
+	for (int i = 0; i < 4; i++){
+		if (texture2D(shadowMap, shadowPos.xy + poissonDisk[i]/700.0).z < shadowPos.z - 0.00005){
+			shadow -= 0.2;
 		}
 	}
 	vec4 ModelColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);

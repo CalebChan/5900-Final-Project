@@ -44,6 +44,7 @@
 
 
 #include "Constant.h"
+#include "PointOfView.h"
 /********************************************************************************/
 
 
@@ -65,7 +66,7 @@
 
 /*******************************************************************************/
 // class static variables
-camera *gameApp::cam = NULL;
+PointOfView *gameApp::cam = NULL;
 meshSurface *gameApp::drawSurface = NULL;
 Chaser *gameApp::chaserYellowKia = NULL;
 Prey   *gameApp::preyRedKia = NULL;
@@ -84,6 +85,9 @@ TerrainShader *gameApp::terrainShader = NULL;
 Shader *gameApp::redHouseShader = NULL;
 Shader *gameApp::defaultShadowShader = NULL;
 Shader *gameApp::redHouseShadowShader = NULL;
+Shader *gameApp::blackWhiteShadowShader = NULL;
+Shader *gameApp::blackWhiteTerrainShadowShader = NULL;
+
 camera *gameApp::overheadCam = NULL;
 camera *gameApp::lightSource = NULL;
 camera *gameApp::depthTextureCam = NULL;
@@ -350,7 +354,7 @@ void gameApp::renderFrame(void)
 		// NOTHING Just fall into next case statement as current full view
 	case RENDER_UPTO_VISIBLITY_PASS:
 		renderDepthPass();
-		renderShadowScene(defaultShadowShader, gameApp::lightSource, gameApp::overheadCam);
+		renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam);
 		renderVisibilityPass();
 		break;
 	case DISPLAY_DEPTH_MAP:
@@ -371,11 +375,16 @@ void gameApp::renderFrame(void)
 	oldTime = clock();
 }
 
-void gameApp::renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam){
+void gameApp::renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam, Shader *terrainShader){
 	glClearColor(0, 0, 0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	Matrix4f depthMat = lightSource->getProjectionMatrix(NULL) * lightSource->getViewMatrix(NULL);
+
+	Shader *tmp = drawSurface->getShader();
+	drawSurface->setShader((terrainShader == NULL) ? shader : terrainShader);
+	drawSurface->render(NULL, viewCam, &depthMat, SHADOW);
+	drawSurface->setShader(tmp);
 
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
@@ -408,7 +417,7 @@ void gameApp::renderDepthPass(){
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	renderScene(DEPTH, gameApp::lightSource);
+	renderScene(DEPTH, gameApp::cam);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -417,10 +426,10 @@ void gameApp::renderVisibilityPass(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	visText->bindTexture();
-	renderShadowScene(defaultShadowShader, gameApp::lightSource, gameApp::overheadCam);
+	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 	visText->unbindTexture();
 
-	renderShadowScene(defaultShadowShader, gameApp::lightSource, gameApp::overheadCam);
+	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 }
 
 void gameApp::renderDepthMap(){
@@ -447,7 +456,7 @@ void gameApp::createShaders(){
 	printf("\n");
 
 	printf("Build Red House Shader\n");
-	redHouseShader = createShader("Shader\\Default_Shader\\generalRed.vert", "Shader\\Default_Shader\\generalRed.frag");
+	redHouseShader = createShader("Shader\\Default_Shader\\general.vert", "Shader\\Default_Shader\\generalRed.frag");
 	printf("\n");
 
 	printf("Build Default Shadow Shader\n");
@@ -455,7 +464,15 @@ void gameApp::createShaders(){
 	printf("\n");
 
 	printf("Build Red House Shadow Shader\n");
-	redHouseShadowShader = createShader("Shader\\Shadow_Shader\\generalRed.vert", "Shader\\Shadow_Shader\\generalRed.frag");
+	redHouseShadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\Red.frag");
+	printf("\n");
+
+	printf("Build Black White Shadow Shader\n");
+	blackWhiteShadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\BWObject.frag");
+	printf("\n");
+
+	printf("Build Black White Terrain Shadow Shader\n");
+	blackWhiteTerrainShadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\BWTerrain.frag");
 	printf("\n");
 
 	printf("Build Terrain Shader\n");
@@ -582,13 +599,13 @@ int gameApp::initGame(void)
 	// load the textures
 	house1->loadTexture("house_obj\\house_diffuse_256.tga");
 	// set attributes (scale, position, and initial orientation towards the (0,0,1)
-	house1->setScale((float) 0.006, (float)  0.006, (float) 0.006);
+	house1->setScale((float) 0.012, (float)  0.012, (float) 0.012);
 	house1->setPositionOrientation(Vector3f(6, 0, (float)1), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
 	staticHouses.push_back(house1);
 
 	// set the global camera
-	cam = new camera();
-	cam->setCamera(Vector3f(0, 5, 20), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
+	cam = new PointOfView();
+	cam->setCamera(Vector3f(0, 7, 20), Vector3f(0, 7, 0), Vector3f(0, 1, 0));
 	//cam->setCamera(Vector3f(0, 30, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
 	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) NEAR_PLANE, FAR_PLANE);
 
@@ -618,7 +635,7 @@ int gameApp::initGame(void)
 	gameDynamicEntities.push_back(chaserYellowKia);
 
 	// add the objecst to the list of game objects
-	gameStaticEntities.push_back(drawSurface);
+	//gameStaticEntities.push_back(drawSurface);
 	gameStaticEntities.push_back(house1);
 	gameStaticEntities.push_back(targetHouse);
 

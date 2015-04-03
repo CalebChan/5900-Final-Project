@@ -67,7 +67,7 @@ public:
 	int updateSpeed(float speed);				// change the speed of the camera motion
 	int changeLookAtVector(float x, float y, float z);  	
 	Matrix4f getViewMatrix(Matrix4f * viewMatrix);
-	Matrix4f getProjectionMatrix(Matrix4f * projMatrix);
+	virtual Matrix4f getProjectionMatrix(Matrix4f * projMatrix);
 	int setPerspectiveView(float fieldOfView, float aspectRatio, float nearPlane, float farPlane);
 	int zoomIn(void);
 	int zoomIn(float zoom);

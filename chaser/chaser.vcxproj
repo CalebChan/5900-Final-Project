@@ -19,6 +19,7 @@
     <ClCompile Include="House.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="meshSurface.cpp" />
+    <ClCompile Include="PointOfView.cpp" />
     <ClCompile Include="Prey.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SkyBox.cpp" />
@@ -34,6 +35,7 @@
     <ClInclude Include="gameApp.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="DepthMeshSurface.h" />
+    <ClInclude Include="PointOfView.h" />
     <ClInclude Include="VisibleTexture.h" />
     <ClInclude Include="TerrainShader.h" />
     <ClInclude Include="House.h" />

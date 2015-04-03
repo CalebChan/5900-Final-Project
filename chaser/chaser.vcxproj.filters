@@ -41,6 +41,9 @@
     <ClCompile Include="VisibleTexture.cpp">
       <Filter>source_files</Filter>
     </ClCompile>
+    <ClCompile Include="PointOfView.cpp">
+      <Filter>source_files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SOIL.h">
@@ -84,6 +87,9 @@
       <Filter>header_files</Filter>
     </ClInclude>
     <ClInclude Include="VisibleTexture.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
+    <ClInclude Include="PointOfView.h">
       <Filter>header_files</Filter>
     </ClInclude>
   </ItemGroup>
