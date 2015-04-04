@@ -280,6 +280,7 @@ int gameApp::updateGameState(long event)
 				gameDynamicEntities.pop_back();
 			}
 		}
+		gameApp::cam->updatePOVCamera();
 		break;
 	case GAME_COLLISION_EVENT:
 		break;
@@ -429,7 +430,21 @@ void gameApp::renderVisibilityPass(){
 	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 	visText->unbindTexture();
 
-	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
+	if (visText->checkIfValidPointOnTexture(cam->position + cam->lookAtVector, Matrix4f::identity())){
+		Vector3f pos = visText->generateValidDirections(cam->position, cam->lookAtVector, Matrix4f::identity(), 45, 30, 1);
+		gameApp::cam->setNextLocation(pos);
+	}
+	
+
+	lightSource->setCamera(cam->getPosition(), cam->getLookAtPoint(), cam->getUpVector());
+	lightSource->changePositionDelta(0, -5, 0);
+
+	renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam, defaultShadowShader);
+
+	//Matrix4f depthMat = overheadCam->getProjectionMatrix(NULL) * overheadCam->getViewMatrix(NULL);
+	
+
+		
 }
 
 void gameApp::renderDepthMap(){
@@ -608,6 +623,7 @@ int gameApp::initGame(void)
 	cam->setCamera(Vector3f(0, 7, 20), Vector3f(0, 7, 0), Vector3f(0, 1, 0));
 	//cam->setCamera(Vector3f(0, 30, 0), Vector3f(0, 0, 0), Vector3f(0, 0, 1));
 	cam->setPerspectiveView(DEFAULT_FOV, 1, (float) NEAR_PLANE, FAR_PLANE);
+	cam->setNextLocation(cam->position + cam->lookAtVector);
 
 	lightSource = new camera();
 	lightSource->setCamera(Vector3f(0, 5, 60), Vector3f(0, 0, 0), Vector3f(0, 1, 0));
@@ -640,8 +656,6 @@ int gameApp::initGame(void)
 	gameStaticEntities.push_back(targetHouse);
 
 	depthEntities.push_back(depthSurface);
-
-	
 
 	return 0;
 }
