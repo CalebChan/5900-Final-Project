@@ -82,7 +82,7 @@ public:
 	int createGraphicsBuffers(Shader *shader);
 	int configureShader(Shader *shader);
 	int setScale(float scaleX, float scaleY, float scaleZ);
-	int loadModelOBJ(char *fileName, struct carVertex **vtxBuf,  GLuint *numVtx, GLuint **indBuf,GLuint *numInd);
+	virtual int loadModelOBJ(char *fileName, struct carVertex **vtxBuf,  GLuint *numVtx, GLuint **indBuf,GLuint *numInd);
 
 
 public:

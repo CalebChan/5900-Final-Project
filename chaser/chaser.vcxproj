@@ -22,6 +22,7 @@
     <ClCompile Include="PointOfView.cpp" />
     <ClCompile Include="Prey.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="Silhouette.cpp" />
     <ClCompile Include="SkyBox.cpp" />
     <ClCompile Include="DepthMeshSurface.cpp" />
     <ClCompile Include="StencilShader.cpp" />
@@ -37,6 +38,7 @@
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="DepthMeshSurface.h" />
     <ClInclude Include="PointOfView.h" />
+    <ClInclude Include="Silhouette.h" />
     <ClInclude Include="StencilShader.h" />
     <ClInclude Include="VisibleTexture.h" />
     <ClInclude Include="TerrainShader.h" />

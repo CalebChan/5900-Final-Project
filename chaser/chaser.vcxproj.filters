@@ -47,6 +47,9 @@
     <ClCompile Include="StencilShader.cpp">
       <Filter>source_files</Filter>
     </ClCompile>
+    <ClCompile Include="Silhouette.cpp">
+      <Filter>source_files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SOIL.h">
@@ -96,6 +99,9 @@
       <Filter>header_files</Filter>
     </ClInclude>
     <ClInclude Include="StencilShader.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
+    <ClInclude Include="Silhouette.h">
       <Filter>header_files</Filter>
     </ClInclude>
   </ItemGroup>
