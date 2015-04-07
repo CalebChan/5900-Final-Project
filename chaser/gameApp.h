@@ -76,6 +76,7 @@
 #include "DepthMeshSurface.h"
 #include "VisibleTexture.h"
 #include "PointOfView.h"
+#include "StencilShader.h"
 
 // DEFINES
 
@@ -119,6 +120,8 @@ public:
 	static std::vector<DepthMeshSurface *> depthEntities;
 	static GLuint terrainFrameBuf;
 	static GLuint terrainTexId;
+
+	static StencilShader *stencilShader;
 public:
 	static void updateFirstPersonCamera(void);
 
@@ -149,14 +152,20 @@ protected:
 	static Shader *blackWhiteShadowShader;
 	static Shader *blackWhiteTerrainShadowShader;
 
+	
+
 	static TerrainShader *terrainShader;
 protected:
-	static void renderScene(RENDER_MAT_TYPE type, camera *viewPoint);
-	
+	static void renderScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain = true);	
+	static void renderSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true);
 	
 	static void renderDepthPass();
 	static void renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam, Shader *terrainShader = NULL);
 	static void renderVisibilityPass();
+
+	static void renderSceneIntoDepth();
+	static void renderIntoStencil();
+	static void renderStencilShadow();
 
 	static void renderDepthMap();
 

@@ -19,6 +19,7 @@ enum RENDER_MAT_TYPE{
 	NORMAL,
 	DEPTH,
 	SHADOW,
+	STENCIL,
 };
 
 class gameObject

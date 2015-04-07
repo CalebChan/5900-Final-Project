@@ -12,14 +12,15 @@ Matrix4f PointOfView::getProjectionMatrix(Matrix4f *projMatrix)
 {
 	Matrix4f m;
 
-	m = Matrix4f::frustumProjectionMatrix(-0.025, -0.1, 0.025, 0.1, 0.01, 50);
+	//m = Matrix4f::frustumProjectionMatrix(-0.025, -0.1, 0.025, 0.1, 0.01, 50);
+	return Matrix4f::symmetricPerspectiveProjectionMatrix(60, 2, 0.1, 100);
 	if (projMatrix != NULL) *projMatrix = m;
 
 	return(m);
 }
 
 void PointOfView::updatePOVCamera(){
-	this->moveForward(0.2);
+	/*this->moveForward(0.05);
 	if (!isSet){
 		return;
 	}
@@ -37,7 +38,7 @@ void PointOfView::updatePOVCamera(){
 	this->yaw(angle);
 	
 	printf(" ANGLE : %f\n", angle);
-	isSet = false;
+	isSet = false;*/
 }
 
 void PointOfView::setNextLocation(Vector3f nextLocation){

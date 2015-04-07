@@ -87,6 +87,7 @@ Shader *gameApp::defaultShadowShader = NULL;
 Shader *gameApp::redHouseShadowShader = NULL;
 Shader *gameApp::blackWhiteShadowShader = NULL;
 Shader *gameApp::blackWhiteTerrainShadowShader = NULL;
+StencilShader *gameApp::stencilShader = NULL;
 
 camera *gameApp::overheadCam = NULL;
 camera *gameApp::lightSource = NULL;
@@ -169,7 +170,7 @@ int gameApp::initGraphics(int argc, char** argv, int winWidth, int winHeight, in
 	glutInit(&argc, argv);
 	
 	//glutInitDisplayMode(GLUT_DOUBLE);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
 
 	// Set the window
 	// instruct openGL where to put the window on the screen
@@ -320,14 +321,17 @@ Return:
 enum RENDER_SWITCH_TYPE{
 
 	RENDER_FULL_VIEW, // Renders everything up until current
+	
+	RENDER_UPTO_SHADOW_PASS,
+	DISPLAY_DEPTH_MAP, // Display shadow draw scene
+	
 	LAST_POSITION, // Everyting after this enum is not in the page up page down rotation
 
-	RENDER_UPTO_SHADOW_PASS,
-	RENDER_UPTO_VISIBLITY_PASS,
-	DISPLAY_DEPTH_MAP, // Display shadow draw scene
-	DISPLAY_DEFAULT_FRAME, // Display initial scene
-
 	
+	RENDER_UPTO_VISIBLITY_PASS,
+	
+	DISPLAY_DEFAULT_FRAME,
+	RENDER_SHADOW_VOLUMN_VIEW,
 };
 
 
@@ -340,7 +344,7 @@ void gameApp::renderFrame(void)
 	time_t currentTime, deltaTime;
 	glClearColor(0, 0, 0, 0.0);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	if (LAST_POSITION == 1){
 		renderMode == 0;
@@ -349,7 +353,7 @@ void gameApp::renderFrame(void)
 	switch (renderMode % LAST_POSITION){
 	case RENDER_UPTO_SHADOW_PASS:
 		renderDepthPass();
-		renderShadowScene(defaultShadowShader, gameApp::lightSource, gameApp::cam);
+		renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam);
 		break;
 	case RENDER_FULL_VIEW:
 		// NOTHING Just fall into next case statement as current full view
@@ -362,7 +366,15 @@ void gameApp::renderFrame(void)
 		renderDepthMap();
 		break;
 	case DISPLAY_DEFAULT_FRAME:
-		renderScene(NORMAL, gameApp::cam);
+		renderScene(NORMAL, gameApp::overheadCam, true);
+		break;
+	
+	case RENDER_SHADOW_VOLUMN_VIEW:
+		renderSceneIntoDepth();
+		glEnable(GL_STENCIL_TEST);
+		renderIntoStencil();
+		renderStencilShadow();
+		glDisable(GL_STENCIL_TEST);
 		break;
 	}
 
@@ -402,13 +414,39 @@ void gameApp::renderShadowScene(Shader *shader, camera *lightSource, camera *vie
 	}
 }
 
-void gameApp::renderScene(RENDER_MAT_TYPE type, camera *viewPoint){
+void gameApp::renderScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain){
+	
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
 		gameDynamicEntities.at(i)->render(NULL, viewPoint, NULL, type);
 	}
 	for (i = 0; i < gameStaticEntities.size(); i++) {
 		gameStaticEntities.at(i)->render(NULL, viewPoint, NULL, type);
+	}
+	
+	if (renderTerrain){
+		drawSurface->render(NULL, viewPoint, NULL, type);
+	}
+}
+
+void gameApp::renderSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
+	unsigned int i;
+	for (i = 0; i < gameDynamicEntities.size(); i++) {
+		Shader *tmp = gameDynamicEntities.at(i)->getShader();
+		gameDynamicEntities.at(i)->setShader(s);
+		gameDynamicEntities.at(i)->render(NULL, view, NULL, type);
+		gameDynamicEntities.at(i)->setShader(tmp);
+	}
+	for (i = 0; i < gameStaticEntities.size(); i++) {
+		Shader *tmp = gameStaticEntities.at(i)->getShader();
+		gameStaticEntities.at(i)->setShader(s);
+		gameStaticEntities.at(i)->render(NULL, view, NULL, type);
+		gameStaticEntities.at(i)->setShader(tmp);
+	}
+
+	if (terrain){
+		printf("Render : TRUE\n");
+		drawSurface->render(NULL, view, NULL, type);
 	}
 }
 
@@ -424,14 +462,17 @@ void gameApp::renderDepthPass(){
 
 void gameApp::renderVisibilityPass(){
 	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	visText->bindTexture();
 	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 	visText->unbindTexture();
 
-	if (visText->checkIfValidPointOnTexture(cam->position + cam->lookAtVector, Matrix4f::identity())){
-		Vector3f pos = visText->generateValidDirections(cam->position, cam->lookAtVector, Matrix4f::identity(), 45, 30, 1);
+	Matrix4f mat = overheadCam->getProjectionMatrix(NULL) * overheadCam->getViewMatrix(NULL);
+
+	if (visText->checkIfValidPointOnTexture(cam->position + cam->lookAtVector * 10, mat)){
+		//printf("Check\n");
+		Vector3f pos = visText->generateValidDirections(cam->position, cam->lookAtVector, mat, 45, 30, 1);
 		gameApp::cam->setNextLocation(pos);
 	}
 	
@@ -439,12 +480,9 @@ void gameApp::renderVisibilityPass(){
 	lightSource->setCamera(cam->getPosition(), cam->getLookAtPoint(), cam->getUpVector());
 	lightSource->changePositionDelta(0, -5, 0);
 
-	renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam, defaultShadowShader);
-
+	//renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam, defaultShadowShader);
+	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 	//Matrix4f depthMat = overheadCam->getProjectionMatrix(NULL) * overheadCam->getViewMatrix(NULL);
-	
-
-		
 }
 
 void gameApp::renderDepthMap(){
@@ -453,6 +491,63 @@ void gameApp::renderDepthMap(){
 
 	depthSurface->setMeshTexture(gameApp::terrainTexId);
 	depthSurface->render(NULL, depthTextureCam);
+}
+
+
+void gameApp::renderSceneIntoDepth(){
+	glClearColor(0, 0, 0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glDepthMask(GL_TRUE);
+	glDrawBuffer(GL_NONE);
+	renderScene(NORMAL, gameApp::overheadCam, true);
+}
+
+void gameApp::renderIntoStencil(){
+	
+	glDepthMask(GL_FALSE);
+    glEnable(GL_DEPTH_CLAMP); 
+    glDisable(GL_CULL_FACE);
+	glClearStencil(0);
+
+
+	// We need the stencil test to be enabled but we want it
+	// to succeed always. Only the depth test matters.
+	glStencilFunc(GL_ALWAYS, 0, 0xff);
+
+	// Set the stencil test per the depth fail algorithm
+	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+	stencilShader->setLightPosition(cam->getPosition());
+
+	renderSceneWShader(STENCIL, gameApp::lightSource, stencilShader, true);
+
+	// Restore local stuff
+	glDisable(GL_DEPTH_CLAMP);
+	glEnable(GL_CULL_FACE);
+}
+
+void gameApp::renderStencilShadow(){
+
+	glDrawBuffer(GL_BACK);
+
+	// Draw only if the corresponding stencil value is zero
+	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
+
+	// prevent update to the stencil buffer
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	// prevent update to the stencil buffer
+	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
+	stencilShader->setLightPosition(cam->getPosition());
+
+	renderSceneWShader(STENCIL, gameApp::overheadCam, stencilShader, true);
+
+	
+	//glDepthMask(GL_TRUE);
+
+	//renderScene(NORMAL, gameApp::overheadCam, true);
+
 }
 
 
@@ -488,6 +583,21 @@ void gameApp::createShaders(){
 
 	printf("Build Black White Terrain Shadow Shader\n");
 	blackWhiteTerrainShadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\BWTerrain.frag");
+	printf("\n");
+
+	printf("Build Stencil Shader\n");
+	stencilShader = new StencilShader();		/* genewrating one shader program only - consider changing it to a class shader DN*/
+	if (stencilShader == NULL) {
+		printf("error in creating a shader obeject \n");
+		assert(0);
+	}
+	rc = stencilShader->createShaderProgram("Shader\\Stencil_Shader\\general.vert", "Shader\\Stencil_Shader\\general.frag", "Shader\\Stencil_Shader\\general.geom", &shaderId);
+	if (rc != 0) {
+		printf("error in generating shader vs=%s, fs=%s \n", "general.vert", "general.frag");
+		delete stencilShader;
+		stencilShader = NULL;
+		assert(0);
+	}
 	printf("\n");
 
 	printf("Build Terrain Shader\n");
@@ -614,7 +724,7 @@ int gameApp::initGame(void)
 	// load the textures
 	house1->loadTexture("house_obj\\house_diffuse_256.tga");
 	// set attributes (scale, position, and initial orientation towards the (0,0,1)
-	house1->setScale((float) 0.012, (float)  0.012, (float) 0.012);
+	house1->setScale((float) 0.006, (float)  0.006, (float) 0.006);
 	house1->setPositionOrientation(Vector3f(6, 0, (float)1), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
 	staticHouses.push_back(house1);
 
@@ -641,6 +751,7 @@ int gameApp::initGame(void)
 	// set the surface
 	drawSurface->createSurface(1, 1, 40, 40);
 	drawSurface->loadTexture("surface\\grass_texture_256.tga");
+	drawSurface->setShader(defaultShader);
 
 	//depthSurface->createSurface(10, 10, SCREEN_WIDTH / 10, SCREEN_HEIGHT / 10);
 	depthSurface->createSurface(1, 1, 40, 40);

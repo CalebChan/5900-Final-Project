@@ -29,7 +29,7 @@ public:
 	// functions creates a shader program.  The two shader programs (vertex and fragment) were already compiled.
 	GLint ceateShaderProgram(GLint vertShaderid, GLint fragShaderid, GLuint *shaderProgId);
 
-private:
+protected:
 	GLuint vertShaderid;
 	GLuint fragShaderid;
 public:

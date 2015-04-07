@@ -55,7 +55,7 @@ Vector3f VisibleTexture::generateValidDirections(Vector3f loc, Vector3f dir, Mat
 	while (possibleDir.size() == 0){
 		double angle = engine(generator) * halfSearch;
 		bool right = engine(generator) > 0.5;
-		double dist = engine(generator) * maxDist;
+		double dist = 50 + engine(generator) * maxDist;
 
 		Vector3f newLocal = Vector3f(0.0, loc.y, 0.0);
 
@@ -75,6 +75,7 @@ Vector3f VisibleTexture::generateValidDirections(Vector3f loc, Vector3f dir, Mat
 		}
 
 		if (checkIfValidPointOnTexture(newLocal, mvpMat)){
+			printf("Found Point\n");
 			possibleDir.push_back(newLocal);
 		}
 	}
@@ -83,14 +84,25 @@ Vector3f VisibleTexture::generateValidDirections(Vector3f loc, Vector3f dir, Mat
 }
 
 bool VisibleTexture::checkIfValidPointOnTexture(Vector3f local, Matrix4f mvpMat){
+	/*Matrix4f biasMat = Matrix4f(Vector4f(0.5, 0.0, 0.0, 0.0),
+		Vector4f(0.0, 0.5, 0.0, 0.0),
+		Vector4f(0.0, 0.0, 0.5, 0.0),
+		Vector4f(0.5, 0.5, 0.5, 1.0));*/
+
 	Vector4f texLocal = mvpMat * Vector4f(local, 1);
-	texLocal = texLocal / texLocal.w;
+
+	texLocal = texLocal / texLocal.w / texLocal.z;
+
+	Vector2f txt(local.x / local.y, local.z / local.y);
+
 	struct{	GLubyte red, green, blue;} pixel;
-	
+
+	bindTexture();
 	glReadPixels(texLocal.x, texLocal.z, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixel);
-	
-	//printf("Pixel Red : %d Blue : %d Green : %d", pixel.red, pixel.blue, pixel.green);
-	//printf(" X : %f Y : %f Z : %f\n", texLocal.x, texLocal.y, texLocal.z);
+	unbindTexture();
+
+	printf("Pixel Red : %d Blue : %d Green : %d", pixel.red, pixel.blue, pixel.green);
+	printf(" X : %f Z : %f\n", texLocal.x, texLocal.z);
 	if (pixel.red >= 128){
 		return true;
 	}

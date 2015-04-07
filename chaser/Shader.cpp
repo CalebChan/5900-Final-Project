@@ -220,9 +220,6 @@ int Shader::createShaderProgram(char * vsFileName, char * fsFileName, GLuint *sh
 	return(rc);
 }
 
-
-
-
 /*********************************************************************/
 // print the status and some information about the linked shader program
 

@@ -31,6 +31,7 @@
 
 
 #include "gameObject.h"
+#include "gameApp.h"
 
 /**************************************************************************/
 // static members
@@ -609,5 +610,9 @@ void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj,
 		glUniform1i(texLoc, 0);
 		break;
 	}
+	case STENCIL:
+		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
+		gameApp::stencilShader->setMatrix(proj * view * model);
+		break;
 	}
 }
