@@ -104,6 +104,9 @@
     <ClInclude Include="Silhouette.h">
       <Filter>header_files</Filter>
     </ClInclude>
+    <ClInclude Include="SilhouetteExtra.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="source_files">

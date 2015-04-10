@@ -12,5 +12,5 @@ public:
 
 	void setLightPosition(Vector3f pos);
 
-	void setMatrix(Matrix4f mat);
+	void setMatrix(Matrix4f mat, char* name);
 };

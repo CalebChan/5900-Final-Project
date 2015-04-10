@@ -482,6 +482,8 @@ int Car::loadModelOBJ(char *fileName, struct carVertex **vtxBuf, GLuint *numVtx,
 
 	}
 
+	computeOtherStuff(*vtxBuf, *indBuf, vertexIndices.size());
+
 	this->createGraphicsBuffers(shader);
 
 err:
@@ -492,6 +494,9 @@ err:
 
 #endif
 
+
+void Car::computeOtherStuff(const struct carVertex *vBuff, GLuint *Indics, GLuint numVert){
+}
 
 /**************************************************************************************/
 //  load the texture Define the geometry

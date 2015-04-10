@@ -78,9 +78,12 @@
 #include "PointOfView.h"
 #include "StencilShader.h"
 
+#include "Silhouette.h"
+
 // DEFINES
 
 #define GAME_TITLE_SISE 128
+
 
 
 class gameApp
@@ -117,11 +120,13 @@ protected:
 //FUNCTIONS
 public:
 	static std::vector<House *> staticHouses;
-	static std::vector<DepthMeshSurface *> depthEntities;
 	static GLuint terrainFrameBuf;
 	static GLuint terrainTexId;
 
 	static StencilShader *stencilShader;
+
+	static std::vector<gameObject *> filledObjects;
+	static std::vector<Silhouette *> silhouettes;
 public:
 	static void updateFirstPersonCamera(void);
 
@@ -156,12 +161,15 @@ protected:
 
 	static TerrainShader *terrainShader;
 protected:
-	static void renderScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain = true);	
-	static void renderSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true);
+	static void renderShadowMappingScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain = true);	
+	static void renderShadowMappingSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true);
 	
 	static void renderDepthPass();
 	static void renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam, Shader *terrainShader = NULL);
 	static void renderVisibilityPass();
+
+	static void renderShadowVolumeScene(int type, camera *view, bool renderTerrain = true);
+	static void renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true);
 
 	static void renderSceneIntoDepth();
 	static void renderIntoStencil();

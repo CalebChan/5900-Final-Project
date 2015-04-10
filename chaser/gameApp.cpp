@@ -49,8 +49,6 @@
 
 
 // DEFINE
-
-
 #define FRAMES_PER_SECOND 30
 #define MS_PER_FRAME (1000.0/30)
 
@@ -98,11 +96,12 @@ GLuint gameApp::terrainTexId;
 
 DepthMeshSurface *gameApp::depthSurface;
 
-std::vector<DepthMeshSurface *> gameApp::depthEntities;
-
 int gameApp::renderMode = 0;
 
 VisibleTexture *gameApp::visText = NULL;
+
+std::vector<Silhouette *> gameApp::silhouettes;
+std::vector<gameObject *> gameApp::filledObjects;
 
 /******************************************************************/
 /*
@@ -319,19 +318,18 @@ Return:
 */
 
 enum RENDER_SWITCH_TYPE{
+	RENDER_SHADOW_VOLUMN_VIEW,
 
-	RENDER_FULL_VIEW, // Renders everything up until current
-	
-	RENDER_UPTO_SHADOW_PASS,
-	DISPLAY_DEPTH_MAP, // Display shadow draw scene
-	
 	LAST_POSITION, // Everyting after this enum is not in the page up page down rotation
 
-	
+	RENDER_FULL_VIEW, // Renders everything up until current
+
+	RENDER_UPTO_SHADOW_PASS,
+	DISPLAY_DEPTH_MAP, // Display shadow draw scene
 	RENDER_UPTO_VISIBLITY_PASS,
 	
 	DISPLAY_DEFAULT_FRAME,
-	RENDER_SHADOW_VOLUMN_VIEW,
+	
 };
 
 
@@ -366,7 +364,7 @@ void gameApp::renderFrame(void)
 		renderDepthMap();
 		break;
 	case DISPLAY_DEFAULT_FRAME:
-		renderScene(NORMAL, gameApp::overheadCam, true);
+		renderShadowMappingScene(NORMAL, gameApp::overheadCam, true);
 		break;
 	
 	case RENDER_SHADOW_VOLUMN_VIEW:
@@ -414,7 +412,7 @@ void gameApp::renderShadowScene(Shader *shader, camera *lightSource, camera *vie
 	}
 }
 
-void gameApp::renderScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain){
+void gameApp::renderShadowMappingScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTerrain){
 	
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
@@ -429,7 +427,7 @@ void gameApp::renderScene(RENDER_MAT_TYPE type, camera *viewPoint, bool renderTe
 	}
 }
 
-void gameApp::renderSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
+void gameApp::renderShadowMappingSceneWShader(RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
 	unsigned int i;
 	for (i = 0; i < gameDynamicEntities.size(); i++) {
 		Shader *tmp = gameDynamicEntities.at(i)->getShader();
@@ -456,7 +454,7 @@ void gameApp::renderDepthPass(){
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	renderScene(DEPTH, gameApp::cam);
+	renderShadowMappingScene(DEPTH, gameApp::cam);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -494,12 +492,75 @@ void gameApp::renderDepthMap(){
 }
 
 
+
+enum SHADOW_VOLUME_RENDER_TYPE{
+	FILLED_OBJECTS = 1,
+	SILHOUTTES = 2,
+};
+
+
+void gameApp::renderShadowVolumeScene(int type, camera *view, bool renderTerrain){
+	if (type & FILLED_OBJECTS > 0){
+		for (int i = 0; i < filledObjects.size(); i++){
+			filledObjects.at(i)->render(NULL, view, NULL, NORMAL);
+		}
+	}
+
+	if (type & SILHOUTTES > 0){
+		for (int i = 0; i < silhouettes.size(); i++){
+			gameObject *obj = filledObjects.at(i);
+			Matrix4f model = obj->getModelMatrix(NULL);
+			Matrix4f mvp = view->getProjectionMatrix(NULL) * view->getViewMatrix(NULL) * model;
+
+			silhouettes.at(i)->render(&mvp, &model, view);
+		}
+	}
+
+	if (renderTerrain){
+		drawSurface->render(NULL, view, NULL, NORMAL);
+	}
+}
+
+
+
+void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
+	if (renderType & FILLED_OBJECTS > 0){
+		for (int i = 0; i < filledObjects.size(); i++){
+			Shader *tmp = filledObjects.at(i)->getShader();
+			filledObjects.at(i)->setShader(s);
+			filledObjects.at(i)->render(NULL, view, NULL, STENCIL);
+			filledObjects.at(i)->setShader(tmp);
+		}
+	}
+
+	if (renderType & SILHOUTTES > 0){
+		for (int i = 0; i < silhouettes.size(); i++){
+			gameObject *obj = filledObjects.at(i);
+			Matrix4f model = obj->getModelMatrix(NULL);
+			Matrix4f mvp = view->getProjectionMatrix(NULL) * view->getViewMatrix(NULL) * model;
+
+			Shader *tmp = silhouettes.at(i)->getShader();
+			silhouettes.at(i)->setShader(s);
+			silhouettes.at(i)->render(&mvp, &model, view);
+			silhouettes.at(i)->setShader(tmp);
+		}
+	}
+
+	if (terrain){
+		drawSurface->render(NULL, view, NULL, type);
+	}
+}
+
 void gameApp::renderSceneIntoDepth(){
-	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glDepthMask(GL_TRUE);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	
 	glDrawBuffer(GL_NONE);
-	renderScene(NORMAL, gameApp::overheadCam, true);
+	renderShadowVolumeScene(FILLED_OBJECTS | SILHOUTTES, gameApp::cam, true);
+
+	//stencilShader->setLightPosition(cam->getPosition());
+	//renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::overheadCam, stencilShader, true);
 }
 
 void gameApp::renderIntoStencil(){
@@ -507,8 +568,6 @@ void gameApp::renderIntoStencil(){
 	glDepthMask(GL_FALSE);
     glEnable(GL_DEPTH_CLAMP); 
     glDisable(GL_CULL_FACE);
-	glClearStencil(0);
-
 
 	// We need the stencil test to be enabled but we want it
 	// to succeed always. Only the depth test matters.
@@ -519,8 +578,7 @@ void gameApp::renderIntoStencil(){
 	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
 	stencilShader->setLightPosition(cam->getPosition());
-
-	renderSceneWShader(STENCIL, gameApp::lightSource, stencilShader, true);
+	renderShadowVolumeSceneWShader(FILLED_OBJECTS | SILHOUTTES, STENCIL, gameApp::cam, stencilShader, false);
 
 	// Restore local stuff
 	glDisable(GL_DEPTH_CLAMP);
@@ -539,12 +597,9 @@ void gameApp::renderStencilShadow(){
 
 	// prevent update to the stencil buffer
 	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
-	stencilShader->setLightPosition(cam->getPosition());
+	renderShadowVolumeScene(FILLED_OBJECTS | SILHOUTTES, gameApp::cam, true);
 
-	renderSceneWShader(STENCIL, gameApp::overheadCam, stencilShader, true);
-
-	
-	//glDepthMask(GL_TRUE);
+	glDepthMask(GL_TRUE);
 
 	//renderScene(NORMAL, gameApp::overheadCam, true);
 
@@ -691,6 +746,9 @@ int gameApp::initGame(void)
 	drawSurface = new meshSurface();
 	depthSurface = new DepthMeshSurface();
 
+	Silhouette *sil = new Silhouette();
+	House *ball = new House();
+
 	createShaders();
 
 	chaserYellowKia->setShader(defaultShader);
@@ -699,6 +757,7 @@ int gameApp::initGame(void)
 	depthSurface->setShader(terrainShader);
 	//targetHouse->setShader(redHouseShader);
 	targetHouse->setShader(defaultShader);
+	ball->setShader(defaultShader);
 
 
 	// set the target house
@@ -727,6 +786,20 @@ int gameApp::initGame(void)
 	house1->setScale((float) 0.006, (float)  0.006, (float) 0.006);
 	house1->setPositionOrientation(Vector3f(6, 0, (float)1), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
 	staticHouses.push_back(house1);
+	// set the house object
+
+	ball->loadModelOBJ("ball\\ball.obj", &ball->mVtxBuf, &ball->mNumVtx, &ball->mIndBuf, &ball->mNumInd);
+	ball->loadTexture("ball\\ball_tex.png");
+	ball->setScale((float) 2, (float)  2, (float) 2);
+	ball->setPositionOrientation(Vector3f(0, 0, (float)10), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
+	filledObjects.push_back(ball);
+
+	sil->setShader(stencilShader);
+	sil->loadModelOBJ("ball\\ball.obj", &sil->mVtxBuf, &sil->mNumVtx, &sil->mIndBuf, &sil->mNumInd);
+	// load the textures
+	silhouettes.push_back(sil);
+
+	
 
 	// set the global camera
 	cam = new PointOfView();
@@ -766,7 +839,6 @@ int gameApp::initGame(void)
 	gameStaticEntities.push_back(house1);
 	gameStaticEntities.push_back(targetHouse);
 
-	depthEntities.push_back(depthSurface);
 
 	return 0;
 }
@@ -916,16 +988,16 @@ void gameApp::specialKeyboardFun(int key, int x, int y)
 			exit(1);
 			break;
 		case GLUT_KEY_LEFT:
-			cam->roll((float)CAMERA_MOVE_SPEED);
+			filledObjects.at(0)->roll((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_UP:
-			cam->pitch((float)CAMERA_MOVE_SPEED);
+			filledObjects.at(0)->pitch((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_RIGHT:
-			cam->roll((float)-CAMERA_MOVE_SPEED);
+			filledObjects.at(0)->roll((float)-CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_DOWN:
-			cam->pitch((float)-CAMERA_MOVE_SPEED);
+			filledObjects.at(0)->pitch((float)-CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_PAGE_UP:
 			renderMode++;

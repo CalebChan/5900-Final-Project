@@ -1,56 +1,22 @@
 #pragma once
 
 #include "car.h"
+#include "SilhouetteExtra.h"
+
+#include <vector>
+#include <map>
 
 class Silhouette : public Car{
-	int loadModelOBJ(char *fileName, struct carVertex **vtxBuf, GLuint *numVtx, GLuint **indBuf, GLuint *numInd);
-
-};
-
-class Face{
 public:
-	void addVertex(Vector4f point, int i){
-		if (i < 2 && i >= 0){
-			points[i] = Vector4f(point);
-		}
-	}
-
-	void addIndex(GLuint point, int i){
-		if (i < 2 && i >= 0){
-			index[i] = point;
-		}
-	}
-
-	GLuint getIndex(int i){
-		return index[i];
-	}
+	Silhouette();
+	int createGraphicsBuffers(Shader *shader);
+	void FindAdjacent(const struct carVertex *vBuff, GLuint *Indics, GLuint numVert);
+	int render(Matrix4f *mvp, Matrix4f *obj, camera *cam);
+	void computeOtherStuff(const struct carVertex *vBuff, GLuint *Indics, GLuint numVert);
 
 private:
-	Vector4f points[3];
-	GLuint index[3];
-};
-
-class Edge{
-public:
-	Edge(GLuint e1, GLuint e2) : vect1(e1), vect2(e2){
-	}
-
-private:
-	GLuint vect1;
-	GLuint vect2;
-
-};
-
-class Neighbour{
-public:
-	void addNeighbour(GLuint index){
-		neighbour = index;
-	}
-
-	GLuint getOther(int i){
-		return neighbour;
-	}
-
-private:
-	GLuint neighbour;
+	std::vector<GLuint> indicies;
+	std::map<Vector4f, GLuint, CompareVectors> posMap;
+	std::map<Edge, Neighbour, CompareEdges> indexMap;
+	std::vector<Face> uniqueFaces;
 };

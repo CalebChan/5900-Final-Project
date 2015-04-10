@@ -592,8 +592,6 @@ int gameObject::yaw(float angleDeg)
 void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj, Matrix4f bias, GLuint shadowTexture, RENDER_MAT_TYPE type){
 	glUseProgram(shader->getProgId());
 
-	//model = view * model;
-	// transfer to shader 
 	shader->copyMatrixToShader(model, "modelWorldViewMat");
 	// transfer to shader 
 	shader->copyMatrixToShader(proj * view, "projMat");
@@ -601,6 +599,10 @@ void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj,
 	switch (type){
 	case SHADOW:
 	{
+
+		shader->copyMatrixToShader(model, "modelWorldViewMat");
+		// transfer to shader 
+		shader->copyMatrixToShader(proj * view, "projMat");
 		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
 		shader->copyMatrixToShader(bias, "lightPVMat");
 		glActiveTexture(GL_TEXTURE0);
@@ -612,7 +614,7 @@ void gameObject::renderShaderSetup(Matrix4f model, Matrix4f view, Matrix4f proj,
 	}
 	case STENCIL:
 		//Matrix4f tmpMatrix = Matrix4f::identity() * *otherMat;
-		gameApp::stencilShader->setMatrix(proj * view * model);
+		gameApp::stencilShader->setMatrix(proj * view * model, "gWVP");
 		break;
 	}
 }

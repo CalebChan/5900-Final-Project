@@ -39,6 +39,7 @@
     <ClInclude Include="DepthMeshSurface.h" />
     <ClInclude Include="PointOfView.h" />
     <ClInclude Include="Silhouette.h" />
+    <ClInclude Include="SilhouetteExtra.h" />
     <ClInclude Include="StencilShader.h" />
     <ClInclude Include="VisibleTexture.h" />
     <ClInclude Include="TerrainShader.h" />

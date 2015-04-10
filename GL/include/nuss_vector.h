@@ -368,7 +368,6 @@ struct Vector4f
         return(Vector4f(x/f, y/f, z/f, w/f));
     }
     
-    
     friend Vector4f operator*(const float f, const Vector4f& u)
     {
         return(u*f);
@@ -440,7 +439,6 @@ struct Vector4f
         return(sqrt(this->x*this->x+this->y*this->y+this->z*this->z+this->w*this->w));
         
     }
-    
     
 	// normalizes the vector
     void normalize()

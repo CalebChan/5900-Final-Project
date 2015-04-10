@@ -27,8 +27,8 @@ void StencilShader::setLightPosition(Vector3f pos){
 	glUniform3f(loc, pos.x, pos.y, pos.z);
 }
 
-void StencilShader::setMatrix(Matrix4f mat){
-	int loc = glGetUniformLocation(this->getProgId(), "gLightPos");
+void StencilShader::setMatrix(Matrix4f mat, char* name){
+	int loc = glGetUniformLocation(this->getProgId(), name);
 	if (loc == -1){
 		assert(loc != -1);
 	}
