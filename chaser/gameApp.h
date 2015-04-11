@@ -77,6 +77,7 @@
 #include "VisibleTexture.h"
 #include "PointOfView.h"
 #include "StencilShader.h"
+#include "LightingShader.h"
 
 #include "Silhouette.h"
 
@@ -157,7 +158,7 @@ protected:
 	static Shader *blackWhiteShadowShader;
 	static Shader *blackWhiteTerrainShadowShader;
 
-	
+	static LightingShader *lightingShader;
 
 	static TerrainShader *terrainShader;
 protected:

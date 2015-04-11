@@ -17,6 +17,7 @@
     <ClCompile Include="gameApp.cpp" />
     <ClCompile Include="gameObject.cpp" />
     <ClCompile Include="House.cpp" />
+    <ClCompile Include="LightingShader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="meshSurface.cpp" />
     <ClCompile Include="PointOfView.cpp" />
@@ -37,6 +38,7 @@
     <ClInclude Include="gameApp.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="DepthMeshSurface.h" />
+    <ClInclude Include="LightingShader.h" />
     <ClInclude Include="PointOfView.h" />
     <ClInclude Include="Silhouette.h" />
     <ClInclude Include="SilhouetteExtra.h" />

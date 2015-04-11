@@ -16,14 +16,14 @@ int Silhouette::createGraphicsBuffers(Shader *shader)
 	glBindVertexArray(mVao);
 
 	//create vertex buffer object
-	glGenBuffers(1, &mIndVbo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndVbo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies[0]) * indicies.size(), &indicies[0], GL_STATIC_DRAW);
-
-	//create vertex buffer object
 	glGenBuffers(1, &mVtxVbo);
 	glBindBuffer(GL_ARRAY_BUFFER, mVtxVbo);
 	glBufferData(GL_ARRAY_BUFFER, mNumVtx * sizeof(struct carVertex), mVtxBuf, GL_STATIC_DRAW);
+
+	//create vertex buffer object
+	glGenBuffers(1, &mIndVbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndVbo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies[0]) * indicies.size(), &indicies[0], GL_STATIC_DRAW);
 
 	configureShader(shader);
 
@@ -35,24 +35,37 @@ int Silhouette::createGraphicsBuffers(Shader *shader)
 
 int Silhouette::render(Matrix4f *mvp, Matrix4f *obj, camera *cam)
 {
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	Matrix4f modelWorldMat;  // model and world transformation. 
+	Matrix4f modelMat, viewMat, projMat;
+	modelMat = Matrix4f::rotateY(this->mYaw, 1) * Matrix4f::scale(mScaleX, mScaleY, mScaleZ);
+	modelWorldMat = Matrix4f::objectMatrix(this->mPosition, this->mPosition + this->lookAtVector, this->upVector)*modelMat;
+
+	renderShaderSetup(modelWorldMat, cam->getViewMatrix(NULL), cam->getProjectionMatrix(NULL), Matrix4f::identity(), NULL, NORMAL);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glLineWidth(5.0f);
 
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, tex);
 
 	GLuint texLoc = glGetUniformLocation(this->shader->getProgId(), "texHandle");
-	glUniform1i(texLoc, 0);
+	glUniform1i(texLoc, 3);
 
 	// redner the triangles
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVtxVbo);
 	glBindVertexArray(mVao);
-	glDrawArrays(GL_TRIANGLES_ADJACENCY, 0, mNumInd);
-	glBindVertexArray(0);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndVbo);
 
+	//glDrawArrays(GL_TRIANGLES, 0, mNumInd);
+	glDrawElements(GL_TRIANGLES_ADJACENCY, indicies.size(), GL_UNSIGNED_INT, (void*)0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	
+	
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	return 0;
 }
 

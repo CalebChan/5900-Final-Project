@@ -50,6 +50,9 @@
     <ClCompile Include="Silhouette.cpp">
       <Filter>source_files</Filter>
     </ClCompile>
+    <ClCompile Include="LightingShader.cpp">
+      <Filter>source_files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SOIL.h">
@@ -105,6 +108,9 @@
       <Filter>header_files</Filter>
     </ClInclude>
     <ClInclude Include="SilhouetteExtra.h">
+      <Filter>header_files</Filter>
+    </ClInclude>
+    <ClInclude Include="LightingShader.h">
       <Filter>header_files</Filter>
     </ClInclude>
   </ItemGroup>
