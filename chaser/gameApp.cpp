@@ -333,6 +333,10 @@ enum RENDER_SWITCH_TYPE{
 	DISPLAY_DEFAULT_FRAME,
 	
 };
+enum SHADOW_VOLUME_RENDER_TYPE{
+	FILLED_OBJECTS = 1,
+	SILHOUTTES = 2,
+};
 
 
 
@@ -375,6 +379,7 @@ void gameApp::renderFrame(void)
 		renderIntoStencil();
 		renderStencilShadow();
 		glDisable(GL_STENCIL_TEST);
+		//renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::overheadCam, lightingShader, true);
 		break;
 	}
 
@@ -495,27 +500,11 @@ void gameApp::renderDepthMap(){
 
 
 
-enum SHADOW_VOLUME_RENDER_TYPE{
-	FILLED_OBJECTS = 1,
-	SILHOUTTES = 2,
-};
 
 
 void gameApp::renderShadowVolumeScene(int type, camera *view, bool renderTerrain){
-	if (type & FILLED_OBJECTS > 0){
-		for (int i = 0; i < filledObjects.size(); i++){
-			filledObjects.at(i)->render(NULL, view, NULL, NORMAL);
-		}
-	}
-
-	if (type & SILHOUTTES > 0){
-		for (int i = 0; i < silhouettes.size(); i++){
-			gameObject *obj = filledObjects.at(i);
-			Matrix4f model = obj->getModelMatrix(NULL);
-			Matrix4f mvp = view->getProjectionMatrix(NULL) * view->getViewMatrix(NULL) * model;
-
-			silhouettes.at(i)->render(&mvp, &model, view);
-		}
+	for (int i = 0; i < silhouettes.size(); i++){
+		silhouettes.at(i)->render(NULL, NULL, view);
 	}
 
 	if (renderTerrain){
@@ -526,41 +515,29 @@ void gameApp::renderShadowVolumeScene(int type, camera *view, bool renderTerrain
 
 
 void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
-	if (renderType & FILLED_OBJECTS > 0){
-		for (int i = 0; i < filledObjects.size(); i++){
-			Shader *tmp = filledObjects.at(i)->getShader();
-			filledObjects.at(i)->setShader(s);
-			filledObjects.at(i)->render(NULL, view, NULL, STENCIL);
-			filledObjects.at(i)->setShader(tmp);
-		}
-	}
 
-	if (renderType & SILHOUTTES > 0){
-		for (int i = 0; i < silhouettes.size(); i++){
-			gameObject *obj = filledObjects.at(i);
-			Matrix4f model = obj->getModelMatrix(NULL);
-			Matrix4f mvp = view->getProjectionMatrix(NULL) * view->getViewMatrix(NULL) * model;
-
-			Shader *tmp = silhouettes.at(i)->getShader();
-			silhouettes.at(i)->setShader(s);
-			silhouettes.at(i)->render(&mvp, &model, view);
-			silhouettes.at(i)->setShader(tmp);
-		}
+	for (int i = 0; i < silhouettes.size(); i++){
+		Shader *tmp = silhouettes.at(i)->getShader();
+		silhouettes.at(i)->setShader(s);
+		silhouettes.at(i)->render(NULL, NULL, view, type);
+		silhouettes.at(i)->setShader(tmp);
 	}
 
 	if (terrain){
-		drawSurface->render(NULL, view, NULL, type);
+		drawSurface->render(NULL, view, NULL, NORMAL);
 	}
 }
 
 void gameApp::renderSceneIntoDepth(){
 	glDepthMask(GL_TRUE);
+	//glClearColor(0, 0, 0, 0);
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	
 	glDrawBuffer(GL_NONE);
+	
 	renderShadowVolumeScene(SILHOUTTES, gameApp::cam, true);
-
+	//renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::cam, defaultShader, true);
 }
 
 void gameApp::renderIntoStencil(){
@@ -568,7 +545,7 @@ void gameApp::renderIntoStencil(){
 	glDepthMask(GL_FALSE);
     glEnable(GL_DEPTH_CLAMP); 
     glDisable(GL_CULL_FACE);
-
+	glClearStencil(0);
 	// We need the stencil test to be enabled but we want it
 	// to succeed always. Only the depth test matters.
 	glStencilFunc(GL_ALWAYS, 0, 0xff);
@@ -577,12 +554,13 @@ void gameApp::renderIntoStencil(){
 	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
 	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
-	stencilShader->setLightPosition(cam->getPosition());
+	stencilShader->setLightPosition(overheadCam->getPosition());
 	renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::cam, stencilShader, false);
 
 	// Restore local stuff
 	glDisable(GL_DEPTH_CLAMP);
 	glEnable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
 }
 
 void gameApp::renderStencilShadow(){
@@ -590,23 +568,25 @@ void gameApp::renderStencilShadow(){
 	glDrawBuffer(GL_BACK);
 
 	// Draw only if the corresponding stencil value is zero
-	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
+	glStencilFunc(GL_EQUAL, 0x00, 0xFF);
 
 	// prevent update to the stencil buffer
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 	// prevent update to the stencil buffer
 	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
+
 	lightingShader->setAmbientIntensity(1.0);
 	lightingShader->setDiffiuseIntensity(0.8);
-	lightingShader->setLightPosition(cam->getPosition());
-
-	renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::cam, lightingShader, false);
+	lightingShader->setLightPosition(overheadCam->getPosition());
 
 	glDepthMask(GL_TRUE);
 
-	//renderScene(NORMAL, gameApp::overheadCam, true);
+	renderShadowVolumeSceneWShader(SILHOUTTES, NORMAL, gameApp::cam, lightingShader, true);
+	
+	
 
+	//renderScene(NORMAL, gameApp::overheadCam, true);
 }
 
 
@@ -808,19 +788,12 @@ int gameApp::initGame(void)
 	staticHouses.push_back(house1);
 	// set the house object
 
-	ball->loadModelOBJ("ball\\ball.obj", &ball->mVtxBuf, &ball->mNumVtx, &ball->mIndBuf, &ball->mNumInd);
-	ball->loadTexture("box\\ball_tex.png");
-	ball->setScale((float) 1, (float)  1, (float) 1);
-	ball->setPositionOrientation(Vector3f(0, 5, (float)10), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
-	filledObjects.push_back(ball);
-
 	sil->setShader(stencilShader);
 	sil->loadModelOBJ("ball\\ball.obj", &sil->mVtxBuf, &sil->mNumVtx, &sil->mIndBuf, &sil->mNumInd);
-	sil->loadTexture("box\\ball_tex.png");
+	sil->loadTexture("ball\\ball_tex.png");
+
 	sil->setScale((float)1, (float)1, (float)1);
 	sil->setPositionOrientation(Vector3f(0, 5, (float)10), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
-	//sil->setScale((float) 0.5, (float)  0.5, (float) 0.5);
-	//sil->setPositionOrientation(Vector3f(0, 10, (float)0), Vector3f(1, 0, 0), Vector3f(0, 1, 0));
 	// load the textures
 	silhouettes.push_back(sil);
 
@@ -1013,16 +986,16 @@ void gameApp::specialKeyboardFun(int key, int x, int y)
 			exit(1);
 			break;
 		case GLUT_KEY_LEFT:
-			filledObjects.at(0)->roll((float)CAMERA_MOVE_SPEED);
+			silhouettes.at(0)->roll((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_UP:
-			filledObjects.at(0)->pitch((float)CAMERA_MOVE_SPEED);
+			silhouettes.at(0)->pitch((float)CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_RIGHT:
-			filledObjects.at(0)->roll((float)-CAMERA_MOVE_SPEED);
+			silhouettes.at(0)->roll((float)-CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_DOWN:
-			filledObjects.at(0)->pitch((float)-CAMERA_MOVE_SPEED);
+			silhouettes.at(0)->pitch((float)-CAMERA_MOVE_SPEED);
 			break;
 		case GLUT_KEY_PAGE_UP:
 			renderMode++;

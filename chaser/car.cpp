@@ -278,10 +278,14 @@ int Car::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, RENDER_MAT_
 	GLint ttt = 0;
 	glGetUniformiv(this->shader->getProgId(), texLoc, &ttt);
 
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	// redner the triangles
 	glBindVertexArray(mVao);
 	glDrawArrays(GL_TRIANGLES, 0, mNumInd);
 	glBindVertexArray(0);
+
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return 0;

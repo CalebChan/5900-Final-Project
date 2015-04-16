@@ -27,7 +27,7 @@ void main(){
 	vOut.tex = vTex;
 	tex1 = vTex;
 	
-	Normal0 = (projMat * modelWorldViewMat * vec4((vNormal / vNormal.w).xyz, 0.0)).xyz;
+	Normal0 = (projMat * modelWorldViewMat * vec4(vNormal.xyz, 1.0)).xyz;
 	WorldPos0 = projMat * modelWorldViewMat * vPos;
 	
 }

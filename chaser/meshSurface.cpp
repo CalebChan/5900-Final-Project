@@ -455,6 +455,7 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, REN
 
 	renderShaderSetup(modelWorldMat, cam->getViewMatrix(NULL), cam->getProjectionMatrix(NULL), bias, gameApp::terrainTexId, type);
 	
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// redner the triangles
 	glActiveTexture(GL_TEXTURE3);
@@ -466,6 +467,8 @@ int meshSurface::render(Matrix4f *worldMat, camera *cam, Matrix4f *otherMat, REN
 	glDrawElements(GL_TRIANGLES, mNumInd, GL_UNSIGNED_INT, NULL);
 	glBindVertexArray(0);
 
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	return 0;
 }
 

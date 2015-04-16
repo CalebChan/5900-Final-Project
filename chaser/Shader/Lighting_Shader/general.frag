@@ -60,5 +60,7 @@ void main()
 	vec3 Normal = normalize(Normal0);                                                       
     vec4 TotalLight = CalcDirectionalLight(Normal);                                         
 
-    FragColor = texture(texHandle, tex1.xy) * TotalLight;
+    FragColor = texture2D(texHandle, tex1.xy) * TotalLight;
+	//FragColor = TotalLight;
+	//FragColor = vec4(0.0, 1.0, 0.0, 0.0);
 }

@@ -9,7 +9,7 @@ in vec4 vColour;	// vertex colour
 in vec2 vTex;		// vertex texture coordinates
 
 varying vec2 tex1;
-out vec3 PosL;
+out vec4 PosL;
 
 out Data{
 	vec4 pos;
@@ -19,11 +19,11 @@ out Data{
 }vOut;
 
 void main(){
-	//gl_Position = projMat * modelWorldViewMat * vPos;
+	gl_Position = projMat * modelWorldViewMat * vPos;
 	vOut.normal = projMat * modelWorldViewMat * vNormal;
 	vOut.pos = gl_Position;
 	vOut.colour = vColour;
 	vOut.tex = vTex;
 	tex1 = vTex;
-	PosL = vPos.xyz; 
+	PosL = vPos; 
 }
