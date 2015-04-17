@@ -47,7 +47,7 @@ int Silhouette::render(Matrix4f *mvp, Matrix4f *obj, camera *cam, RENDER_MAT_TYP
 	glUniform1i(texLoc, 4);
 
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// redner the triangles
 	glBindVertexArray(mVao);
@@ -56,7 +56,7 @@ int Silhouette::render(Matrix4f *mvp, Matrix4f *obj, camera *cam, RENDER_MAT_TYP
 
 	glBindVertexArray(0);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return 0;
 }

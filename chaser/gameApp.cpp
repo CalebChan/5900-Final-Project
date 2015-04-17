@@ -530,8 +530,8 @@ void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE typ
 
 void gameApp::renderSceneIntoDepth(){
 	glDepthMask(GL_TRUE);
-	//glClearColor(0, 0, 0, 0);
-	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClearColor(0, 0, 0, 0);
+	//glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	
 	glDrawBuffer(GL_NONE);
@@ -545,7 +545,7 @@ void gameApp::renderIntoStencil(){
 	glDepthMask(GL_FALSE);
     glEnable(GL_DEPTH_CLAMP); 
     glDisable(GL_CULL_FACE);
-	glClearStencil(0);
+
 	// We need the stencil test to be enabled but we want it
 	// to succeed always. Only the depth test matters.
 	glStencilFunc(GL_ALWAYS, 0, 0xff);
@@ -582,6 +582,7 @@ void gameApp::renderStencilShadow(){
 
 	glDepthMask(GL_TRUE);
 
+	glDisable(GL_STENCIL_TEST);
 	renderShadowVolumeSceneWShader(SILHOUTTES, NORMAL, gameApp::cam, lightingShader, true);
 	
 	
