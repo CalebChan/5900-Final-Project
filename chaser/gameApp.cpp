@@ -66,6 +66,7 @@
 // class static variables
 PointOfView *gameApp::cam = NULL;
 meshSurface *gameApp::drawSurface = NULL;
+meshSurface *gameApp::drawVolumeSurface = NULL;
 Chaser *gameApp::chaserYellowKia = NULL;
 Prey   *gameApp::preyRedKia = NULL;
 gameApp * gameApp::myApp;
@@ -85,6 +86,7 @@ Shader *gameApp::defaultShadowShader = NULL;
 Shader *gameApp::redHouseShadowShader = NULL;
 Shader *gameApp::blackWhiteShadowShader = NULL;
 Shader *gameApp::blackWhiteTerrainShadowShader = NULL;
+Shader *gameApp::VolumehadowShader = NULL;
 StencilShader *gameApp::stencilShader = NULL;
 
 LightingShader *gameApp::lightingShader = NULL;
@@ -320,17 +322,22 @@ Return:
 */
 
 enum RENDER_SWITCH_TYPE{
+	RENDER_UPTO_VISIBLITY_PASS,
+	RENDER_UPTO_SHADOW_PASS,
+	DISPLAY_DEPTH_MAP, // Display shadow draw scene
+	
 	RENDER_SHADOW_VOLUMN_VIEW,
+
 
 	LAST_POSITION, // Everyting after this enum is not in the page up page down rotation
 
-	RENDER_FULL_VIEW, // Renders everything up until current
+	
 
-	RENDER_UPTO_SHADOW_PASS,
-	DISPLAY_DEPTH_MAP, // Display shadow draw scene
-	RENDER_UPTO_VISIBLITY_PASS,
+	
 	
 	DISPLAY_DEFAULT_FRAME,
+	RENDER_FULL_VIEW, // Renders everything up until current
+	
 	
 };
 enum SHADOW_VOLUME_RENDER_TYPE{
@@ -378,8 +385,6 @@ void gameApp::renderFrame(void)
 		glEnable(GL_STENCIL_TEST);
 		renderIntoStencil();
 		renderStencilShadow();
-		glDisable(GL_STENCIL_TEST);
-		//renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::overheadCam, lightingShader, true);
 		break;
 	}
 
@@ -395,7 +400,7 @@ void gameApp::renderFrame(void)
 
 void gameApp::renderShadowScene(Shader *shader, camera *lightSource, camera *viewCam, Shader *terrainShader){
 	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	Matrix4f depthMat = lightSource->getProjectionMatrix(NULL) * lightSource->getViewMatrix(NULL);
 
@@ -469,9 +474,9 @@ void gameApp::renderVisibilityPass(){
 	glClearColor(0, 0, 0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	visText->bindTexture();
+	//visText->bindTexture();
 	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
-	visText->unbindTexture();
+	//visText->unbindTexture();
 
 	Matrix4f mat = overheadCam->getProjectionMatrix(NULL) * overheadCam->getViewMatrix(NULL);
 
@@ -486,13 +491,13 @@ void gameApp::renderVisibilityPass(){
 	lightSource->changePositionDelta(0, -5, 0);
 
 	//renderShadowScene(defaultShadowShader, gameApp::cam, gameApp::overheadCam, defaultShadowShader);
-	renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
+	//renderShadowScene(blackWhiteShadowShader, gameApp::cam, gameApp::overheadCam, blackWhiteTerrainShadowShader);
 	//Matrix4f depthMat = overheadCam->getProjectionMatrix(NULL) * overheadCam->getViewMatrix(NULL);
 }
 
 void gameApp::renderDepthMap(){
 	glClearColor(0, 0, 0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	depthSurface->setMeshTexture(gameApp::terrainTexId);
 	depthSurface->render(NULL, depthTextureCam);
@@ -508,13 +513,13 @@ void gameApp::renderShadowVolumeScene(int type, camera *view, bool renderTerrain
 	}
 
 	if (renderTerrain){
-		drawSurface->render(NULL, view, NULL, NORMAL);
+		drawVolumeSurface->render(NULL, view, NULL, NORMAL);
 	}
 }
 
 
 
-void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain){
+void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain, bool useBWTerrainShader){
 
 	for (int i = 0; i < silhouettes.size(); i++){
 		Shader *tmp = silhouettes.at(i)->getShader();
@@ -524,7 +529,15 @@ void gameApp::renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE typ
 	}
 
 	if (terrain){
-		drawSurface->render(NULL, view, NULL, NORMAL);
+		Shader *tmp = NULL;
+		if (useBWTerrainShader){
+			tmp = drawVolumeSurface->getShader();
+			drawVolumeSurface->setShader(VolumehadowShader);
+		}
+		drawVolumeSurface->render(NULL, view, NULL, NORMAL);
+		if (useBWTerrainShader){
+			drawVolumeSurface->setShader(tmp);
+		}
 	}
 }
 
@@ -536,7 +549,7 @@ void gameApp::renderSceneIntoDepth(){
 	
 	glDrawBuffer(GL_NONE);
 	
-	renderShadowVolumeScene(SILHOUTTES, gameApp::cam, true);
+	renderShadowVolumeScene(SILHOUTTES, gameApp::overheadCam, true);
 	//renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::cam, defaultShader, true);
 }
 
@@ -554,8 +567,8 @@ void gameApp::renderIntoStencil(){
 	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
 	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
-	stencilShader->setLightPosition(overheadCam->getPosition());
-	renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::cam, stencilShader, false);
+	stencilShader->setLightPosition(cam->getPosition());
+	renderShadowVolumeSceneWShader(SILHOUTTES, STENCIL, gameApp::overheadCam, stencilShader, false);
 
 	// Restore local stuff
 	glDisable(GL_DEPTH_CLAMP);
@@ -578,12 +591,12 @@ void gameApp::renderStencilShadow(){
 
 	lightingShader->setAmbientIntensity(1.0);
 	lightingShader->setDiffiuseIntensity(0.8);
-	lightingShader->setLightPosition(overheadCam->getPosition());
+	lightingShader->setLightPosition(cam->getPosition());
 
 	glDepthMask(GL_TRUE);
 
 	glDisable(GL_STENCIL_TEST);
-	renderShadowVolumeSceneWShader(SILHOUTTES, NORMAL, gameApp::cam, lightingShader, true);
+	renderShadowVolumeSceneWShader(SILHOUTTES, NORMAL, gameApp::overheadCam, lightingShader, true, true);
 	
 	
 
@@ -623,6 +636,10 @@ void gameApp::createShaders(){
 
 	printf("Build Black White Terrain Shadow Shader\n");
 	blackWhiteTerrainShadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\BWTerrain.frag");
+	printf("\n");
+
+	printf("Build Volume Terrain Shadow Shader\n");
+	VolumehadowShader = createShader("Shader\\Shadow_Shader\\general.vert", "Shader\\Shadow_Shader\\BWVolumeTerrain.frag");
 	printf("\n");
 
 	printf("Build Stencil Shader\n");
@@ -747,6 +764,9 @@ int gameApp::initGame(void)
 	drawSurface = new meshSurface();
 	depthSurface = new DepthMeshSurface();
 
+	drawVolumeSurface = new meshSurface();
+
+
 	Silhouette *sil = new Silhouette();
 	House *ball = new House();
 
@@ -755,6 +775,7 @@ int gameApp::initGame(void)
 	chaserYellowKia->setShader(defaultShader);
 	house1->setShader(defaultShader);
 	drawSurface->setShader(defaultShader);
+	drawVolumeSurface->setShader(defaultShader);
 	depthSurface->setShader(terrainShader);
 	//targetHouse->setShader(redHouseShader);
 	targetHouse->setShader(defaultShader);
@@ -824,6 +845,10 @@ int gameApp::initGame(void)
 	drawSurface->createSurface(1, 1, 40, 40);
 	drawSurface->loadTexture("surface\\grass_texture_256.tga");
 	drawSurface->setShader(defaultShader);
+
+	drawVolumeSurface->createSurface(1, 1, 40, 40);
+	drawVolumeSurface->loadTexture("surface\\grass_texture_256.tga");
+	drawVolumeSurface->setShader(defaultShader);
 
 	//depthSurface->createSurface(10, 10, SCREEN_WIDTH / 10, SCREEN_HEIGHT / 10);
 	depthSurface->createSurface(1, 1, 40, 40);

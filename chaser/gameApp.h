@@ -101,11 +101,13 @@ public:
 	static gameApp *myApp;
 	static Prey    *preyRedKia;
 	static House *targetHouse;
+	static PointOfView *cam;
 private:
 	int wId;		// the window handle 
 	static meshSurface *drawSurface;
+	static meshSurface *drawVolumeSurface;
 	static Chaser  *chaserYellowKia;
-	static PointOfView *cam;		// one general camera
+			// one general camera
 	static std::vector<gameObject *> gameStaticEntities;	// these entities do not change with time
 	static std::vector<gameObject *> gameDynamicEntities; // these entities' attributes change with time
 protected:
@@ -156,6 +158,7 @@ protected:
 	static Shader *defaultShadowShader;
 	static Shader *redHouseShadowShader;
 	static Shader *blackWhiteShadowShader;
+	static Shader *VolumehadowShader;
 	static Shader *blackWhiteTerrainShadowShader;
 
 	static LightingShader *lightingShader;
@@ -170,7 +173,7 @@ protected:
 	static void renderVisibilityPass();
 
 	static void renderShadowVolumeScene(int type, camera *view, bool renderTerrain = true);
-	static void renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true);
+	static void renderShadowVolumeSceneWShader(int renderType, RENDER_MAT_TYPE type, camera *view, Shader *s, bool terrain = true, bool useBWTerrainShader = false);
 
 	static void renderSceneIntoDepth();
 	static void renderIntoStencil();
